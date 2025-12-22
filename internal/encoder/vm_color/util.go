@@ -316,8 +316,35 @@ func callIsZeroMethod(code *encoder.Opcode, ptr uintptr) bool {
 	return false
 }
 
+// hasIsZeroMethod checks if the type has a custom IsZero() bool method.
+func hasIsZeroMethod(typ *runtime.Type) bool {
+	// Check if type has IsZero() bool method
+	method, found := typ.MethodByName("IsZero")
+	if found {
+		// Verify signature: no parameters, one bool return
+		if method.Type.NumIn() == 1 && // receiver only
+			method.Type.NumOut() == 1 &&
+			method.Type.Out(0).Kind() == reflect.Bool {
+			return true
+		}
+	}
+	// Check pointer type if original type is not a pointer
+	if typ.Kind() != reflect.Ptr {
+		ptrTyp := runtime.PtrTo(typ)
+		ptrMethod, found := ptrTyp.MethodByName("IsZero")
+		if found {
+			if ptrMethod.Type.NumIn() == 1 && // receiver only
+				ptrMethod.Type.NumOut() == 1 &&
+				ptrMethod.Type.Out(0).Kind() == reflect.Bool {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // isStructZero checks if a struct value is zero-valued.
-// Uses reflect.Value.IsZero() which properly handles all struct fields.
+// Uses custom IsZero() method if available, otherwise falls back to reflect.Value.IsZero().
 func isStructZero(typ *runtime.Type, ptr uintptr) bool {
 	if typ == nil || ptr == 0 {
 		return false
@@ -325,6 +352,13 @@ func isStructZero(typ *runtime.Type, ptr uintptr) bool {
 
 	// Create an opcode temporarily to use ptrToInterface
 	code := &encoder.Opcode{Type: typ}
+
+	// First check if the type has a custom IsZero method
+	if hasIsZeroMethod(typ) {
+		return callIsZeroMethod(code, ptr)
+	}
+
+	// Fall back to reflection-based zero detection
 	v := ptrToInterface(code, ptr)
 	reflectValue := reflect.ValueOf(v)
 	return reflectValue.IsZero()
