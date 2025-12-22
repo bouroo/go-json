@@ -434,9 +434,7 @@ func TestCoverOmitZero(t *testing.T) {
 			},
 		},
 
-		// Custom IsZero method (only works for nested structs, not top-level)
-		// TODO: temporarily disabled - need to investigate why custom IsZero isn't working
-		/*
+		// Custom IsZero method
 		{
 			name: "CustomIsZeroZero",
 			data: struct {
@@ -455,7 +453,6 @@ func TestCoverOmitZero(t *testing.T) {
 				Field customIsZeroStruct `json:"field,omitzero"`
 			}{Field: customIsZeroStruct{Value: 42}}, // This should be omitted (custom IsZero)
 		},
-		*/
 
 		// Combined tags
 		{

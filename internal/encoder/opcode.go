@@ -26,6 +26,7 @@ const (
 	MarshalerContextFlags  OpFlags = 1 << 8
 	NonEmptyInterfaceFlags OpFlags = 1 << 9
 	OmitZeroFlags          OpFlags = 1 << 10
+	OmitEmptyFlags         OpFlags = 1 << 11
 )
 
 type Opcode struct {

@@ -634,7 +634,7 @@ func (c *StructFieldCode) getAnonymousStruct() *StructCode {
 
 func optimizeStructHeader(code *Opcode, tag *runtime.StructTag) OpType {
 	headType := code.ToHeaderType(tag.IsString)
-	if tag.IsOmitEmpty {
+	if tag.IsOmitEmpty || tag.IsOmitZero {
 		headType = headType.HeadToOmitEmptyHead()
 	}
 	return headType
@@ -642,7 +642,7 @@ func optimizeStructHeader(code *Opcode, tag *runtime.StructTag) OpType {
 
 func optimizeStructField(code *Opcode, tag *runtime.StructTag) OpType {
 	fieldType := code.ToFieldType(tag.IsString)
-	if tag.IsOmitEmpty {
+	if tag.IsOmitEmpty || tag.IsOmitZero {
 		fieldType = fieldType.FieldToOmitEmptyField()
 	}
 	return fieldType
@@ -659,6 +659,10 @@ func (c *StructFieldCode) headerOpcodes(ctx *compileContext, field *Opcode, valu
 	if c.tag.IsOmitZero {
 		field.Flags |= OmitZeroFlags
 		field.HasIsZeroMethod = hasIsZeroMethod(c.typ)
+	}
+	// Set OmitEmpty flag if tag specifies omitempty
+	if c.tag.IsOmitEmpty {
+		field.Flags |= OmitEmptyFlags
 	}
 	field.NumBitSize = value.NumBitSize
 	field.PtrNum = value.PtrNum
@@ -684,6 +688,10 @@ func (c *StructFieldCode) fieldOpcodes(ctx *compileContext, field *Opcode, value
 	if c.tag.IsOmitZero {
 		field.Flags |= OmitZeroFlags
 		field.HasIsZeroMethod = hasIsZeroMethod(c.typ)
+	}
+	// Set OmitEmpty flag if tag specifies omitempty
+	if c.tag.IsOmitEmpty {
+		field.Flags |= OmitEmptyFlags
 	}
 	field.NumBitSize = value.NumBitSize
 	field.PtrNum = value.PtrNum

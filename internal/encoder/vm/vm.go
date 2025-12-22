@@ -2883,7 +2883,14 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			}
 			p += uintptr(code.Offset)
 			slice := ptrToSlice(p)
-			if slice.Len == 0 {
+			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
+			var shouldOmit bool
+			if (code.Flags&encoder.OmitZeroFlags != 0) && (code.Flags&encoder.OmitEmptyFlags == 0) {
+				shouldOmit = slice.Data == nil // omitzero: skip only nil
+			} else {
+				shouldOmit = slice.Len == 0 // omitempty or both: skip nil or empty
+			}
+			if shouldOmit {
 				code = code.NextField
 			} else {
 				b = appendStructKey(ctx, code, b)
@@ -3023,7 +3030,14 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if p != 0 && (code.Flags&encoder.IndirectFlags) != 0 {
 				p = ptrToPtr(p + uintptr(code.Offset))
 			}
-			if maplen(ptrToUnsafePtr(p)) == 0 {
+			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
+			var shouldOmit bool
+			if (code.Flags&encoder.OmitZeroFlags != 0) && (code.Flags&encoder.OmitEmptyFlags == 0) {
+				shouldOmit = p == 0 // omitzero: skip only nil
+			} else {
+				shouldOmit = maplen(ptrToUnsafePtr(p)) == 0 // omitempty or both: skip nil or empty
+			}
+			if shouldOmit {
 				code = code.NextField
 			} else {
 				b = appendStructKey(ctx, code, b)
@@ -3212,6 +3226,28 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				if (code.Flags&encoder.IndirectFlags) != 0 || code.Op == encoder.OpStructPtrHeadOmitEmptyMarshalJSON {
 					p = ptrToPtr(p)
 				}
+			}
+			// Check OmitZero flag: skip if value is zero (for types like time.Time with IsZero method)
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				var isZero bool
+				if code.HasIsZeroMethod {
+					isZero = callIsZeroMethod(code, p)
+				} else {
+					isZero = isStructZero(code.Type, p)
+				}
+				if isZero {
+					code = code.NextField
+				} else {
+					iface := ptrToInterface(code, p)
+					b = appendStructKey(ctx, code, b)
+					bb, err := appendMarshalJSON(ctx, code, b, iface)
+					if err != nil {
+						return nil, err
+					}
+					b = appendComma(ctx, bb)
+					code = code.Next
+				}
+				break
 			}
 			iface := ptrToInterface(code, p)
 			if (code.Flags&encoder.NilCheckFlags) != 0 && encoder.IsNilForMarshaler(iface) {
@@ -4298,6 +4334,19 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.NextField
 				break
 			}
+			// Check OmitZero flag: skip if value is zero (for types like time.Time with IsZero method)
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				var isZero bool
+				if code.HasIsZeroMethod {
+					isZero = callIsZeroMethod(code, p)
+				} else {
+					isZero = isStructZero(code.Type, p)
+				}
+				if isZero {
+					code = code.NextField
+					break
+				}
+			}
 			iface := ptrToInterface(code, p)
 			if (code.Flags&encoder.NilCheckFlags) != 0 && encoder.IsNilForMarshaler(iface) {
 				code = code.NextField
@@ -4445,7 +4494,14 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			p := load(ctxptr, code.Idx)
 			p += uintptr(code.Offset)
 			slice := ptrToSlice(p)
-			if slice.Len == 0 {
+			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
+			var shouldOmit bool
+			if (code.Flags&encoder.OmitZeroFlags != 0) && (code.Flags&encoder.OmitEmptyFlags == 0) {
+				shouldOmit = slice.Data == nil // omitzero: skip only nil
+			} else {
+				shouldOmit = slice.Len == 0 // omitempty or both: skip nil or empty
+			}
+			if shouldOmit {
 				code = code.NextField
 			} else {
 				b = appendStructKey(ctx, code, b)
@@ -4488,7 +4544,14 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 		case encoder.OpStructFieldOmitEmptyMap:
 			p := load(ctxptr, code.Idx)
 			p = ptrToPtr(p + uintptr(code.Offset))
-			if p == 0 || maplen(ptrToUnsafePtr(p)) == 0 {
+			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
+			var shouldOmit bool
+			if (code.Flags&encoder.OmitZeroFlags != 0) && (code.Flags&encoder.OmitEmptyFlags == 0) {
+				shouldOmit = p == 0 // omitzero: skip only nil
+			} else {
+				shouldOmit = p == 0 || maplen(ptrToUnsafePtr(p)) == 0 // omitempty or both: skip nil or empty
+			}
+			if shouldOmit {
 				code = code.NextField
 			} else {
 				b = appendStructKey(ctx, code, b)
