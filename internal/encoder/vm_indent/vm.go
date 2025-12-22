@@ -312,8 +312,25 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.End.Next
 				break
 			}
-			store(ctxptr, code.Idx, p)
-			fallthrough
+			// p is a pointer to slice, dereference it to get the actual slice
+			slice := ptrToSlice(p)
+			if slice.Data == nil {
+				b = appendNullComma(ctx, b)
+				code = code.End.Next
+				break
+			}
+			store(ctxptr, code.ElemIdx, 0)
+			store(ctxptr, code.Length, uintptr(slice.Len))
+			store(ctxptr, code.Idx, uintptr(slice.Data))
+			if slice.Len > 0 {
+				b = appendArrayHead(ctx, code, b)
+				code = code.Next
+				store(ctxptr, code.Idx, uintptr(slice.Data))
+			} else {
+				b = appendEmptyArray(ctx, b)
+				code = code.End.Next
+			}
+			break
 		case encoder.OpSlice:
 			p := load(ctxptr, code.Idx)
 			slice := ptrToSlice(p)
@@ -2909,8 +2926,19 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 					code = code.NextField
 					break
 				}
-				// Use dereferenced pointer for consistent handling
-				p = ptr
+				// Use dereferenced pointer to get the actual slice
+				if ptr != 0 {
+					slice := ptrToSlice(ptr)
+					if slice.Data == nil {
+						// pointer to nil slice - should output null, not omit
+						p = 0
+					} else {
+						// pointer to valid slice - use slice data
+						p = uintptr(slice.Data)
+					}
+				} else {
+					p = 0
+				}
 			} else {
 				if (code.Flags & encoder.IndirectFlags) != 0 {
 					p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
@@ -2921,8 +2949,36 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				b = appendNullComma(ctx, b)
 				code = code.NextField
 			} else {
-				code = code.Next
-				store(ctxptr, code.Idx, p)
+				// p is either slice data (from OmitZero path) or needs to be dereferenced
+				var slicePtr uintptr
+				if code.Flags&encoder.OmitZeroFlags != 0 {
+					// p is already slice data from OmitZero processing
+					slicePtr = p
+				} else {
+					// p is pointer to slice, need to dereference
+					slicePtr = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+				}
+
+				if slicePtr == 0 {
+					b = appendNullComma(ctx, b)
+					code = code.NextField
+				} else {
+					slice := ptrToSlice(slicePtr)
+					if slice.Data == nil {
+						b = appendNullComma(ctx, b)
+						code = code.NextField
+					} else if slice.Len == 0 {
+						b = appendEmptyArray(ctx, b)
+						code = code.NextField
+					} else {
+						// non-empty slice: set up for slice element processing
+						store(ctxptr, code.ElemIdx, 0)
+						store(ctxptr, code.Length, uintptr(slice.Len))
+						store(ctxptr, code.Idx, uintptr(slice.Data))
+						b = appendArrayHead(ctx, code, b)
+						code = code.Next
+					}
+				}
 			}
 		case encoder.OpStructPtrHeadOmitEmptyArrayPtr, encoder.OpStructPtrHeadOmitEmptySlicePtr:
 			p := load(ctxptr, code.Idx)
@@ -4449,19 +4505,11 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 		case encoder.OpStructFieldSlicePtr:
 			p := load(ctxptr, code.Idx)
 			p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
-			// Check OmitZero flag: skip field if slice pointer is nil OR points to nil slice
-			if code.Flags&encoder.OmitZeroFlags != 0 {
-				if p == 0 {
-					// nil slice pointer with omitzero should be omitted entirely
-					code = code.NextField
-					break
-				}
-				// non-null pointer: check if it points to nil slice
-				slice := ptrToSlice(p)
-				if slice.Data == nil { // nil slice check (NOT empty check)
-					code = code.NextField
-					break
-				}
+			// Check OmitZero flag: skip field if slice pointer is nil
+			if code.Flags&encoder.OmitZeroFlags != 0 && p == 0 {
+				// nil slice pointer with omitzero should be omitted entirely
+				code = code.NextField
+				break
 			}
 			b = appendStructKey(ctx, code, b)
 			code = code.Next
