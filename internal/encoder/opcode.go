@@ -25,6 +25,7 @@ const (
 	IsNilableTypeFlags     OpFlags = 1 << 7
 	MarshalerContextFlags  OpFlags = 1 << 8
 	NonEmptyInterfaceFlags OpFlags = 1 << 9
+	OmitZeroFlags          OpFlags = 1 << 10
 )
 
 type Opcode struct {
@@ -48,6 +49,8 @@ type Opcode struct {
 	Size       uint32        // array/slice elem size
 	DisplayIdx uint32        // opcode index
 	DisplayKey string        // key text to display
+
+	HasIsZeroMethod bool // whether the type has IsZero() method
 }
 
 func (c *Opcode) Validate() error {
@@ -344,6 +347,7 @@ func copyOpcode(code *Opcode) *Opcode {
 			Size:       c.Size,
 			Indent:     c.Indent,
 			Jmp:        c.Jmp,
+			HasIsZeroMethod: c.HasIsZeroMethod,
 		}
 		if c.End != nil {
 			ptr.End = getCodeAddrByIdx(head, c.End.DisplayIdx)

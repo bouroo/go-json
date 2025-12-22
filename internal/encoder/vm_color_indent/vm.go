@@ -614,10 +614,17 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
-			b = appendInt(ctx, b, p+uintptr(code.Offset), code)
-			b = appendComma(ctx, b)
-			code = code.Next
+			// Check OmitZero flag: skip field if value is zero and omitzero is set
+			u64 := ptrToUint64(p+uintptr(code.Offset), code.NumBitSize)
+			v := u64 & ((1 << code.NumBitSize) - 1)
+			if code.Flags&encoder.OmitZeroFlags != 0 && v == 0 {
+				code = code.NextField
+			} else {
+				b = appendStructKey(ctx, code, b)
+				b = appendInt(ctx, b, p+uintptr(code.Offset), code)
+				b = appendComma(ctx, b)
+				code = code.Next
+			}
 		case encoder.OpStructPtrHeadOmitEmptyInt:
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p := load(ctxptr, code.Idx)
@@ -645,6 +652,7 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			}
 			u64 := ptrToUint64(p+uintptr(code.Offset), code.NumBitSize)
 			v := u64 & ((1 << code.NumBitSize) - 1)
+			// Check OmitZero flag: for primitives, same behavior as OmitEmpty (skip if == 0)
 			if v == 0 {
 				code = code.NextField
 			} else {
@@ -883,10 +891,17 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
-			b = appendUint(ctx, b, p+uintptr(code.Offset), code)
-			b = appendComma(ctx, b)
-			code = code.Next
+			// Check OmitZero flag: skip field if value is zero and omitzero is set
+			u64 := ptrToUint64(p+uintptr(code.Offset), code.NumBitSize)
+			v := u64 & ((1 << code.NumBitSize) - 1)
+			if code.Flags&encoder.OmitZeroFlags != 0 && v == 0 {
+				code = code.NextField
+			} else {
+				b = appendStructKey(ctx, code, b)
+				b = appendUint(ctx, b, p+uintptr(code.Offset), code)
+				b = appendComma(ctx, b)
+				code = code.Next
+			}
 		case encoder.OpStructPtrHeadOmitEmptyUint:
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p := load(ctxptr, code.Idx)
@@ -3276,6 +3291,15 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			}
 		case encoder.OpStructFieldInt:
 			p := load(ctxptr, code.Idx)
+			// Check OmitZero flag: skip field if value is zero and omitzero is set
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				u64 := ptrToUint64(p+uintptr(code.Offset), code.NumBitSize)
+				v := u64 & ((1 << code.NumBitSize) - 1)
+				if v == 0 {
+					code = code.Next
+					continue
+				}
+			}
 			b = appendStructKey(ctx, code, b)
 			b = appendInt(ctx, b, p+uintptr(code.Offset), code)
 			b = appendComma(ctx, b)
@@ -3356,6 +3380,15 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			code = code.Next
 		case encoder.OpStructFieldUint:
 			p := load(ctxptr, code.Idx)
+			// Check OmitZero flag: skip field if value is zero and omitzero is set
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				u64 := ptrToUint64(p+uintptr(code.Offset), code.NumBitSize)
+				v := u64 & ((1 << code.NumBitSize) - 1)
+				if v == 0 {
+					code = code.Next
+					continue
+				}
+			}
 			b = appendStructKey(ctx, code, b)
 			b = appendUint(ctx, b, p+uintptr(code.Offset), code)
 			b = appendComma(ctx, b)

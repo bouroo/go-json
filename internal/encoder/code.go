@@ -655,6 +655,11 @@ func (c *StructFieldCode) headerOpcodes(ctx *compileContext, field *Opcode, valu
 	if value.Flags&MarshalerContextFlags != 0 {
 		field.Flags |= MarshalerContextFlags
 	}
+	// Set OmitZero flag if tag specifies omitzero
+	if c.tag.IsOmitZero {
+		field.Flags |= OmitZeroFlags
+		field.HasIsZeroMethod = hasIsZeroMethod(c.typ)
+	}
 	field.NumBitSize = value.NumBitSize
 	field.PtrNum = value.PtrNum
 	field.FieldQuery = value.FieldQuery
@@ -674,6 +679,11 @@ func (c *StructFieldCode) fieldOpcodes(ctx *compileContext, field *Opcode, value
 	field.Op = op
 	if value.Flags&MarshalerContextFlags != 0 {
 		field.Flags |= MarshalerContextFlags
+	}
+	// Set OmitZero flag if tag specifies omitzero
+	if c.tag.IsOmitZero {
+		field.Flags |= OmitZeroFlags
+		field.HasIsZeroMethod = hasIsZeroMethod(c.typ)
 	}
 	field.NumBitSize = value.NumBitSize
 	field.PtrNum = value.PtrNum

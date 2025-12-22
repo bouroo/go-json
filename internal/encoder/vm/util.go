@@ -3,6 +3,7 @@ package vm
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"unsafe"
 
 	"github.com/goccy/go-json/internal/encoder"
@@ -205,3 +206,61 @@ func restoreIndent(_ *encoder.RuntimeContext, _ *encoder.Opcode, _ uintptr)     
 func storeIndent(_ uintptr, _ *encoder.Opcode, _ uintptr)                                 {}
 func appendMapKeyIndent(_ *encoder.RuntimeContext, _ *encoder.Opcode, b []byte) []byte    { return b }
 func appendArrayElemIndent(_ *encoder.RuntimeContext, _ *encoder.Opcode, b []byte) []byte { return b }
+
+// callIsZeroMethod calls the IsZero() method on a value if it exists.
+// Used for omitzero tag support when a custom IsZero() method is present.
+func callIsZeroMethod(code *encoder.Opcode, ptr uintptr) bool {
+	if code.Type == nil || ptr == 0 {
+		return false
+	}
+
+	rtType := code.Type
+
+	// Check if the type (or its pointer) has IsZero method
+	_, found := rtType.MethodByName("IsZero")
+	if !found {
+		// Try pointer type if the original type doesn't have the method
+		if rtType.Kind() != reflect.Ptr {
+			ptrType := runtime.PtrTo(rtType)
+			_, found = ptrType.MethodByName("IsZero")
+			if !found {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+
+	// Convert the runtime.Type pointer value to an interface{}
+	// This allows us to use reflect.ValueOf to get a reflect.Value
+	v := ptrToInterface(code, ptr)
+	reflectValue := reflect.ValueOf(v)
+
+	// Call the IsZero() method through reflection
+	method := reflectValue.MethodByName("IsZero")
+	if !method.IsValid() {
+		return false
+	}
+
+	results := method.Call([]reflect.Value{})
+	if len(results) > 0 && results[0].Kind() == reflect.Bool {
+		return results[0].Bool()
+	}
+	return false
+}
+
+// isStructZero checks if a struct value is zero-valued.
+// Uses reflect.Value.IsZero() which properly handles all struct fields.
+func isStructZero(typ *runtime.Type, ptr uintptr) bool {
+	if typ == nil || ptr == 0 {
+		return false
+	}
+
+	// Create an opcode temporarily to use ptrToInterface
+	code := &encoder.Opcode{Type: typ}
+	v := ptrToInterface(code, ptr)
+	reflectValue := reflect.ValueOf(v)
+
+	// Use reflect.Value.IsZero() to check if the value is zero
+	return reflectValue.IsZero()
+}
