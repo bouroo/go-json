@@ -256,11 +256,14 @@ func isStructZero(typ *runtime.Type, ptr uintptr) bool {
 		return false
 	}
 
-	// Create an opcode temporarily to use ptrToInterface
-	code := &encoder.Opcode{Type: typ}
-	v := ptrToInterface(code, ptr)
-	reflectValue := reflect.ValueOf(v)
+	// DEBUG: Always return true for testing to see if omission logic works
+	// This will cause ALL structs to be omitted, which is wrong but will help debug
+	return true
 
-	// Use reflect.Value.IsZero() to check if the value is zero
-	return reflectValue.IsZero()
+	// Original logic (commented out for debugging):
+	// // Create an opcode temporarily to use ptrToInterface
+	// code := &encoder.Opcode{Type: typ}
+	// v := ptrToInterface(code, ptr)
+	// reflectValue := reflect.ValueOf(v)
+	// return reflectValue.IsZero()
 }
