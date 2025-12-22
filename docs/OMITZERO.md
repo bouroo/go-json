@@ -94,7 +94,7 @@ json.Marshal(data)
 
 ### Structs
 
-Structs are omitted if ALL their fields (with `omitzero`) would be omitted:
+A struct is omitted if it is its zero value. This means all of its fields must be their respective zero values:
 
 ```go
 type Address struct {
@@ -258,7 +258,7 @@ go test -bench=OmitZero ./benchmarks/
 - **No breaking changes** to existing APIs
 - **Same error handling** as the standard library
 
-## Limitations
+## Implementation Details
 
 - Recursive type detection is handled correctly
 - Embedded struct flattening works as expected
