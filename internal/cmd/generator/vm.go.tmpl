@@ -2804,8 +2804,16 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			p += uintptr(code.Offset)
+			// Check OmitZero flag: skip field if slice/array is nil
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				slice := ptrToSlice(p)
+				if slice.Data == nil {  // nil slice/array check
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			code = code.Next
 			store(ctxptr, code.Idx, p)
 		case encoder.OpStructPtrHeadOmitEmptyArray:
@@ -2961,10 +2969,15 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			if p != 0 && (code.Flags&encoder.IndirectFlags) != 0 {
 				p = ptrToPtr(p + uintptr(code.Offset))
 			}
+			// Check OmitZero flag: skip field if map is nil
+			if code.Flags&encoder.OmitZeroFlags != 0 && p == 0 {
+				code = code.NextField
+				break
+			}
+			b = appendStructKey(ctx, code, b)
 			code = code.Next
 			store(ctxptr, code.Idx, p)
 		case encoder.OpStructPtrHeadOmitEmptyMap:
@@ -4380,9 +4393,17 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.NextField
 			}
 		case encoder.OpStructFieldSlice:
-			b = appendStructKey(ctx, code, b)
 			p := load(ctxptr, code.Idx)
 			p += uintptr(code.Offset)
+			// Check OmitZero flag: skip field if slice is nil
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				slice := ptrToSlice(p)
+				if slice.Data == nil {  // nil slice check
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			code = code.Next
 			store(ctxptr, code.Idx, p)
 		case encoder.OpStructFieldOmitEmptySlice:
@@ -4397,9 +4418,17 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				store(ctxptr, code.Idx, p)
 			}
 		case encoder.OpStructFieldSlicePtr:
-			b = appendStructKey(ctx, code, b)
 			p := load(ctxptr, code.Idx)
 			p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+			// Check OmitZero flag: skip field if slice pointer is nil or points to nil slice
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				slice := ptrToSlice(p)
+				if slice.Data == nil {  // nil slice check
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			code = code.Next
 			store(ctxptr, code.Idx, p)
 		case encoder.OpStructFieldOmitEmptySlicePtr:
@@ -4413,9 +4442,14 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.NextField
 			}
 		case encoder.OpStructFieldMap:
-			b = appendStructKey(ctx, code, b)
 			p := load(ctxptr, code.Idx)
 			p = ptrToPtr(p + uintptr(code.Offset))
+			// Check OmitZero flag: skip field if map is nil
+			if code.Flags&encoder.OmitZeroFlags != 0 && p == 0 {
+				code = code.NextField
+				break
+			}
+			b = appendStructKey(ctx, code, b)
 			code = code.Next
 			store(ctxptr, code.Idx, p)
 		case encoder.OpStructFieldOmitEmptyMap:
@@ -4429,12 +4463,17 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				store(ctxptr, code.Idx, p)
 			}
 		case encoder.OpStructFieldMapPtr:
-			b = appendStructKey(ctx, code, b)
 			p := load(ctxptr, code.Idx)
 			p = ptrToPtr(p + uintptr(code.Offset))
 			if p != 0 {
 				p = ptrToNPtr(p, code.PtrNum)
 			}
+			// Check OmitZero flag: skip field if map pointer is nil or points to nil map
+			if code.Flags&encoder.OmitZeroFlags != 0 && p == 0 {
+				code = code.NextField
+				break
+			}
+			b = appendStructKey(ctx, code, b)
 			code = code.Next
 			store(ctxptr, code.Idx, p)
 		case encoder.OpStructFieldOmitEmptyMapPtr:
