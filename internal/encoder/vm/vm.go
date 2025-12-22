@@ -760,10 +760,19 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
 			}
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				u64 := ptrToUint64(p, code.NumBitSize)
+				v := u64 & ((1 << code.NumBitSize) - 1)
+				if v == 0 {
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
 			} else {
@@ -826,10 +835,19 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
 			}
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				u64 := ptrToUint64(p, code.NumBitSize)
+				v := u64 & ((1 << code.NumBitSize) - 1)
+				if v == 0 {
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
 			} else {
@@ -1042,10 +1060,19 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
 			}
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				u64 := ptrToUint64(p, code.NumBitSize)
+				v := u64 & ((1 << code.NumBitSize) - 1)
+				if v == 0 {
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
 			} else {
@@ -1108,10 +1135,19 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
 			}
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				u64 := ptrToUint64(p, code.NumBitSize)
+				v := u64 & ((1 << code.NumBitSize) - 1)
+				if v == 0 {
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
 			} else {
@@ -1320,10 +1356,18 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
 			}
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				f32Val := ptrToFloat32(p)
+				if f32Val == 0.0 {
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
 			} else {
@@ -1610,10 +1654,21 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
 			}
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				v := ptrToFloat64(p)
+				if math.IsInf(v, 0) || math.IsNaN(v) {
+					return nil, errUnsupportedFloat(v)
+				}
+				if v == 0.0 {
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
 			} else {
@@ -1901,10 +1956,18 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
 			}
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				str := ptrToString(p)
+				if str == "" {
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
 			} else {
@@ -2175,10 +2238,18 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			b = appendStructKey(ctx, code, b)
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
 			}
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				boolVal := ptrToBool(p)
+				if !boolVal {
+					code = code.NextField
+					break
+				}
+			}
+			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
 			} else {
@@ -3411,6 +3482,15 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 		case encoder.OpStructFieldIntPtr:
 			p := load(ctxptr, code.Idx)
 			p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				u64 := ptrToUint64(p, code.NumBitSize)
+				v := u64 & ((1 << code.NumBitSize) - 1)
+				if v == 0 {
+					code = code.Next
+					continue
+				}
+			}
 			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
@@ -3431,6 +3511,15 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 		case encoder.OpStructFieldIntPtrString:
 			p := load(ctxptr, code.Idx)
 			p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				u64 := ptrToUint64(p, code.NumBitSize)
+				v := u64 & ((1 << code.NumBitSize) - 1)
+				if v == 0 {
+					code = code.Next
+					continue
+				}
+			}
 			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
@@ -3514,6 +3603,15 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 		case encoder.OpStructFieldUintPtr:
 			p := load(ctxptr, code.Idx)
 			p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				u64 := ptrToUint64(p, code.NumBitSize)
+				v := u64 & ((1 << code.NumBitSize) - 1)
+				if v == 0 {
+					code = code.Next
+					continue
+				}
+			}
 			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
@@ -3609,6 +3707,14 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 		case encoder.OpStructFieldFloat32Ptr:
 			p := load(ctxptr, code.Idx)
 			p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				f32Val := ptrToFloat32(p)
+				if f32Val == 0.0 {
+					code = code.Next
+					continue
+				}
+			}
 			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
@@ -3711,6 +3817,17 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 		case encoder.OpStructFieldFloat64Ptr:
 			p := load(ctxptr, code.Idx)
 			p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				v := ptrToFloat64(p)
+				if math.IsInf(v, 0) || math.IsNaN(v) {
+					return nil, errUnsupportedFloat(v)
+				}
+				if v == 0.0 {
+					code = code.Next
+					continue
+				}
+			}
 			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNullComma(ctx, b)
@@ -3819,6 +3936,14 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 		case encoder.OpStructFieldStringPtr:
 			p := load(ctxptr, code.Idx)
 			p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				str := ptrToString(p)
+				if str == "" {
+					code = code.Next
+					continue
+				}
+			}
 			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
@@ -3910,6 +4035,14 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 		case encoder.OpStructFieldBoolPtr:
 			p := load(ctxptr, code.Idx)
 			p = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+			// Check OmitZero flag: skip field if pointer is non-null but points to zero value
+			if code.Flags&encoder.OmitZeroFlags != 0 && p != 0 {
+				boolVal := ptrToBool(p)
+				if !boolVal {
+					code = code.Next
+					continue
+				}
+			}
 			b = appendStructKey(ctx, code, b)
 			if p == 0 {
 				b = appendNull(ctx, b)
