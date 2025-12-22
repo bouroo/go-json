@@ -2897,8 +2897,13 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				b = appendStructHead(ctx, b)
 			}
 			// Check OmitZero flag for slice pointers: skip field if pointer is nil
-			if code.Flags&encoder.OmitZeroFlags != 0 && (code.Flags & encoder.IndirectFlags) != 0 {
-				ptr := ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				var ptr uintptr
+				if (code.Flags & encoder.IndirectFlags) != 0 {
+					ptr = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+				} else {
+					ptr = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
+				}
 				if ptr == 0 {
 					// nil slice pointer with omitzero should be omitted entirely
 					code = code.NextField
@@ -3043,10 +3048,19 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				b = appendStructHead(ctx, b)
 			}
 			// Check OmitZero flag for map pointers: skip field if pointer is nil
-			if code.Flags&encoder.OmitZeroFlags != 0 && (code.Flags & encoder.IndirectFlags) != 0 {
-				ptr := ptrToPtr(p + uintptr(code.Offset))
-				if ptr != 0 {
-					ptr = ptrToNPtr(ptr, code.PtrNum)
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				var ptr uintptr
+				if (code.Flags & encoder.IndirectFlags) != 0 {
+					if p == 0 {
+						ptr = 0
+					} else {
+						ptr = ptrToPtr(p + uintptr(code.Offset))
+						if ptr != 0 {
+							ptr = ptrToNPtr(ptr, code.PtrNum)
+						}
+					}
+				} else {
+					ptr = ptrToNPtr(p+uintptr(code.Offset), code.PtrNum)
 				}
 				if ptr == 0 {
 					// nil map pointer with omitzero should be omitted entirely
