@@ -4523,7 +4523,6 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.NextField
 			}
 		case encoder.OpStructFieldStruct:
-			b = appendStructKey(ctx, code, b)
 			p := load(ctxptr, code.Idx)
 			p += uintptr(code.Offset)
 			// Check OmitZero flag: skip field if struct is zero-valued
@@ -4533,6 +4532,7 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 					break
 				}
 			}
+			b = appendStructKey(ctx, code, b)
 			code = code.Next
 			store(ctxptr, code.Idx, p)
 		case encoder.OpStructFieldOmitEmptyStruct:
