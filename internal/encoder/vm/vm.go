@@ -3091,30 +3091,30 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				p = ptr
 			} else {
 				if p == 0 {
+					b = appendStructKey(ctx, code, b)
 					b = appendNullComma(ctx, b)
 					code = code.NextField
 					break
 				}
 				p = ptrToPtr(p + uintptr(code.Offset))
 				if p == 0 {
+					b = appendStructKey(ctx, code, b)
 					b = appendNullComma(ctx, b)
 					code = code.NextField
-				} else {
-					if (code.Flags & encoder.IndirectFlags) != 0 {
-						p = ptrToNPtr(p, code.PtrNum)
-					}
-					code = code.Next
-					store(ctxptr, code.Idx, p)
+					break
 				}
-			}
-			b = appendStructKey(ctx, code, b)
-			if p == 0 {
-				b = appendNullComma(ctx, b)
-				code = code.NextField
-			} else {
+				if (code.Flags & encoder.IndirectFlags) != 0 {
+					p = ptrToNPtr(p, code.PtrNum)
+				}
+				b = appendStructKey(ctx, code, b)
 				code = code.Next
 				store(ctxptr, code.Idx, p)
+				break
 			}
+			// OmitZero case: write struct key and store pointer
+			b = appendStructKey(ctx, code, b)
+			code = code.Next
+			store(ctxptr, code.Idx, p)
 		case encoder.OpStructPtrHeadOmitEmptyMapPtr:
 			p := load(ctxptr, code.Idx)
 			if p == 0 {
