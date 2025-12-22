@@ -585,6 +585,13 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if p == 0 || (ptrToPtr(p) == 0 && (code.Flags&encoder.IsNextOpPtrTypeFlags) != 0) {
 				code = code.NextField
 			} else {
+				// Check OmitZero flag: skip field if struct is zero-valued
+				if code.Flags&encoder.OmitZeroFlags != 0 {
+					if isStructZero(code.Type, p) {
+						code = code.NextField
+						break
+					}
+				}
 				b = appendStructKey(ctx, code, b)
 				code = code.Next
 				store(ctxptr, code.Idx, p)
@@ -3429,6 +3436,13 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if ptrToPtr(p) == 0 && (code.Flags&encoder.IsNextOpPtrTypeFlags) != 0 {
 				code = code.NextField
 			} else {
+				// Check OmitZero flag: skip field if struct is zero-valued
+				if code.Flags&encoder.OmitZeroFlags != 0 {
+					if isStructZero(code.Type, p) {
+						code = code.NextField
+						break
+					}
+				}
 				b = appendStructKey(ctx, code, b)
 				code = code.Next
 				store(ctxptr, code.Idx, p)

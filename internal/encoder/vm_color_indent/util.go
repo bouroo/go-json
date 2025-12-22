@@ -341,21 +341,14 @@ func callIsZeroMethod(code *encoder.Opcode, ptr uintptr) bool {
 
 // isStructZero checks if a struct value is zero-valued.
 // Uses reflect.Value.IsZero() which properly handles all struct fields.
-// isStructZero checks if a struct value is zero-valued.
-// Uses reflect.Value.IsZero() which properly handles all struct fields.
 func isStructZero(typ *runtime.Type, ptr uintptr) bool {
 	if typ == nil || ptr == 0 {
 		return false
 	}
 
-	// DEBUG: Always return true for testing to see if omission logic works
-	// This will cause ALL structs to be omitted, which is wrong but will help debug
-	return true
-
-	// Original logic (commented out for debugging)
-	// // Create an opcode temporarily to use ptrToInterface
-	// code := &encoder.Opcode{Type: typ}
-	// v := ptrToInterface(code, ptr)
-	// reflectValue := reflect.ValueOf(v)
-	// return reflectValue.IsZero()
+	// Create an opcode temporarily to use ptrToInterface
+	code := &encoder.Opcode{Type: typ}
+	v := ptrToInterface(code, ptr)
+	reflectValue := reflect.ValueOf(v)
+	return reflectValue.IsZero()
 }
