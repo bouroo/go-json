@@ -459,15 +459,15 @@ func Benchmark_Encode_LargeStruct_GoJson(b *testing.B) {
 
 // OmitZero Benchmark Types
 type SmallPayloadOmitZero struct {
-	St   int     `json:"st,omitzero"`
-	Sid  int     `json:"sid,omitzero"`
-	Tt   string  `json:"tt,omitzero"`
-	Gr   int     `json:"gr,omitzero"`
-	Uuid string  `json:"uuid,omitzero"`
-	Ip   string  `json:"ip,omitzero"`
-	Ua   string  `json:"ua,omitzero"`
-	Tz   int     `json:"tz,omitzero"`
-	V    int     `json:"v,omitzero"`
+	St   int    `json:"st,omitzero"`
+	Sid  int    `json:"sid,omitzero"`
+	Tt   string `json:"tt,omitzero"`
+	Gr   int    `json:"gr,omitzero"`
+	Uuid string `json:"uuid,omitzero"`
+	Ip   string `json:"ip,omitzero"`
+	Ua   string `json:"ua,omitzero"`
+	Tz   int    `json:"tz,omitzero"`
+	V    int    `json:"v,omitzero"`
 }
 
 // NewSmallPayloadOmitZero creates a new payload with non-zero values
@@ -490,6 +490,19 @@ func NewSmallPayloadOmitZeroAllZero() SmallPayloadOmitZero {
 	return SmallPayloadOmitZero{}
 }
 
+// SmallPayloadOmitZeroMixed is a payload with mixed zero/non-zero values for testing omitzero
+type SmallPayloadOmitZeroMixed struct {
+	St   int    `json:"st,omitzero"`
+	Sid  int    `json:"sid"`
+	Tt   string `json:"tt,omitzero"`
+	Gr   int    `json:"gr"`
+	Uuid string `json:"uuid,omitzero"`
+	Ip   string `json:"ip"`
+	Ua   string `json:"ua,omitzero"`
+	Tz   int    `json:"tz,omitzero"`
+	V    int    `json:"v"`
+}
+
 // NewSmallPayloadOmitZeroMixed creates a payload with mixed zero/non-zero values
 func NewSmallPayloadOmitZeroMixed() SmallPayloadOmitZeroMixed {
 	return SmallPayloadOmitZeroMixed{
@@ -503,6 +516,19 @@ func NewSmallPayloadOmitZeroMixed() SmallPayloadOmitZeroMixed {
 		Tz:   0,
 		V:    1,
 	}
+}
+
+// SmallPayloadOmitEmpty is a payload with omitempty tags for comparison testing
+type SmallPayloadOmitEmpty struct {
+	St   int    `json:"st,omitempty"`
+	Sid  int    `json:"sid,omitempty"`
+	Tt   string `json:"tt,omitempty"`
+	Gr   int    `json:"gr,omitempty"`
+	Uuid string `json:"uuid,omitempty"`
+	Ip   string `json:"ip,omitempty"`
+	Ua   string `json:"ua,omitempty"`
+	Tz   int    `json:"tz,omitempty"`
+	V    int    `json:"v,omitempty"`
 }
 
 // NewSmallPayloadOmitEmpty creates a payload with omitempty tags and non-zero values
@@ -525,6 +551,19 @@ func NewSmallPayloadOmitEmptyAllZero() SmallPayloadOmitEmpty {
 	return SmallPayloadOmitEmpty{}
 }
 
+// StdlibPayloadOmitZero is a stdlib-compatible payload with omitzero tags for comparison testing
+type StdlibPayloadOmitZero struct {
+	St   int    `json:"st,omitzero"`
+	Sid  int    `json:"sid,omitzero"`
+	Tt   string `json:"tt,omitzero"`
+	Gr   int    `json:"gr,omitzero"`
+	Uuid string `json:"uuid,omitzero"`
+	Ip   string `json:"ip,omitzero"`
+	Ua   string `json:"ua,omitzero"`
+	Tz   int    `json:"tz,omitzero"`
+	V    int    `json:"v,omitzero"`
+}
+
 // NewSmallPayloadStdlibOmitZero creates a stdlib payload with omitzero tags and non-zero values
 func NewSmallPayloadStdlibOmitZero() StdlibPayloadOmitZero {
 	return StdlibPayloadOmitZero{
@@ -543,18 +582,6 @@ func NewSmallPayloadStdlibOmitZero() StdlibPayloadOmitZero {
 // NewSmallPayloadStdlibOmitZeroAllZero creates a stdlib payload with omitzero tags and all zero values
 func NewSmallPayloadStdlibOmitZeroAllZero() StdlibPayloadOmitZero {
 	return StdlibPayloadOmitZero{}
-}
-
-type SmallPayloadOmitZeroMixed struct {
-	St   int     `json:"st,omitzero"`
-	Sid  int     `json:"sid"`
-	Tt   string  `json:"tt,omitzero"`
-	Gr   int     `json:"gr"`
-	Uuid string  `json:"uuid,omitzero"`
-	Ip   string  `json:"ip"`
-	Ua   string  `json:"ua,omitzero"`
-	Tz   int     `json:"tz,omitzero"`
-	V    int     `json:"v"`
 }
 
 // Benchmarks for OmitZero performance
@@ -592,18 +619,6 @@ func Benchmark_Encode_SmallStruct_GoJson_OmitZeroMixed(b *testing.B) {
 }
 
 // Comparison benchmarks with omitempty
-type SmallPayloadOmitEmpty struct {
-	St   int     `json:"st,omitempty"`
-	Sid  int     `json:"sid,omitempty"`
-	Tt   string  `json:"tt,omitempty"`
-	Gr   int     `json:"gr,omitempty"`
-	Uuid string  `json:"uuid,omitempty"`
-	Ip   string  `json:"ip,omitempty"`
-	Ua   string  `json:"ua,omitempty"`
-	Tz   int     `json:"tz,omitempty"`
-	V    int     `json:"v,omitempty"`
-}
-
 func Benchmark_Encode_SmallStruct_GoJson_OmitEmpty(b *testing.B) {
 	b.ReportAllocs()
 	payload := NewSmallPayloadOmitEmpty()
@@ -624,18 +639,6 @@ func Benchmark_Encode_SmallStruct_GoJson_OmitEmptyAllZero(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-}
-
-type StdlibPayloadOmitZero struct {
-	St   int     `json:"st,omitzero"`
-	Sid  int     `json:"sid,omitzero"`
-	Tt   string  `json:"tt,omitzero"`
-	Gr   int     `json:"gr,omitzero"`
-	Uuid string  `json:"uuid,omitzero"`
-	Ip   string  `json:"ip,omitzero"`
-	Ua   string  `json:"ua,omitzero"`
-	Tz   int     `json:"tz,omitzero"`
-	V    int     `json:"v,omitzero"`
 }
 
 func Benchmark_Encode_SmallStruct_StdLib_OmitZero(b *testing.B) {
