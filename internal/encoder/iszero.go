@@ -47,28 +47,13 @@ func HasIsZeroMethod(typ *runtime.Type) bool {
 	return false
 }
 
-// CallIsZeroMethod calls the IsZero() method on a value if it exists.
+// CallIsZeroMethod calls the IsZero() method on a value.
 // Used for omitzero tag support when a custom IsZero() method is present.
+// The caller must have verified that the type has an IsZero() method
+// (via Opcode.HasIsZeroMethod) before calling this function.
 func CallIsZeroMethod(code *Opcode, ptr uintptr) bool {
 	if code.Type == nil || ptr == 0 {
 		return false
-	}
-
-	rtType := code.Type
-
-	// Check if the type (or its pointer) has IsZero method
-	_, found := rtType.MethodByName("IsZero")
-	if !found {
-		// Try pointer type if the original type doesn't have the method
-		if rtType.Kind() != reflect.Ptr {
-			ptrType := runtime.PtrTo(rtType)
-			_, found = ptrType.MethodByName("IsZero")
-			if !found {
-				return false
-			}
-		} else {
-			return false
-		}
 	}
 
 	// Convert the runtime.Type pointer value to an interface{}
@@ -89,6 +74,20 @@ func CallIsZeroMethod(code *Opcode, ptr uintptr) bool {
 	return false
 }
 
+// isStructZeroByReflection checks if a struct value is zero-valued using reflection.
+// This function assumes the type does NOT have a custom IsZero() method.
+// The caller must verify this before calling this function.
+func isStructZeroByReflection(typ *runtime.Type, ptr uintptr) bool {
+	if typ == nil || ptr == 0 {
+		return false
+	}
+
+	code := &Opcode{Type: typ}
+	v := PtrToInterface(code, ptr)
+	reflectValue := reflect.ValueOf(v)
+	return reflectValue.IsZero()
+}
+
 // IsStructZero checks if a struct value is zero-valued.
 // Uses custom IsZero() method if available, otherwise falls back to reflect.Value.IsZero().
 func IsStructZero(typ *runtime.Type, ptr uintptr) bool {
@@ -96,16 +95,12 @@ func IsStructZero(typ *runtime.Type, ptr uintptr) bool {
 		return false
 	}
 
-	// Create an opcode temporarily to use PtrToInterface
-	code := &Opcode{Type: typ}
-
-	// First check if the type has a custom IsZero method
+	// Check if the type has a custom IsZero method (for external callers)
 	if HasIsZeroMethod(typ) {
+		code := &Opcode{Type: typ}
 		return CallIsZeroMethod(code, ptr)
 	}
 
-	// Fall back to reflection-based zero detection
-	v := PtrToInterface(code, ptr)
-	reflectValue := reflect.ValueOf(v)
-	return reflectValue.IsZero()
+	// Use pure reflection path
+	return isStructZeroByReflection(typ, ptr)
 }
