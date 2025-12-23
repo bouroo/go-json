@@ -577,6 +577,31 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
+			// Check OmitZero flag: skip field if struct is zero-valued
+			if len(code.Key) > 0 && code.Flags&encoder.OmitZeroFlags != 0 {
+				// For pointer fields with omitzero: only check if pointer is nil
+				// For value struct fields with omitzero: check if struct is zero-valued
+				fieldPtr := p + uintptr(code.Offset)
+				if (code.Flags & encoder.IsNextOpPtrTypeFlags) != 0 {
+					// Pointer field: omit only if nil
+					if ptrToPtr(fieldPtr) == 0 {
+						code = code.NextField
+						p += uintptr(code.Offset)
+						code = code.Next
+						store(ctxptr, code.Idx, p)
+						break
+					}
+				} else {
+					// Value struct field: omit if struct is zero-valued
+					if isStructZero(code.Type, fieldPtr) {
+						code = code.NextField
+						p += uintptr(code.Offset)
+						code = code.Next
+						store(ctxptr, code.Idx, p)
+						break
+					}
+				}
+			}
 			if len(code.Key) > 0 {
 				if (code.Flags&encoder.IsTaggedKeyFlags) != 0 || code.Flags&encoder.AnonymousKeyFlags == 0 {
 					b = appendStructKey(ctx, code, b)
@@ -3156,14 +3181,20 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			}
 			// Resolve field pointer from offset
 			p = ptrToPtr(p + uintptr(code.Offset))
-			if p == 0 {
-				// Field pointer is null, skip to next field
+			// Apply indirect pointer normalization if needed
+			if (code.Flags & encoder.IndirectFlags) != 0 {
+				p = ptrToNPtr(p, code.PtrNum)
+			}
+			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
+			var shouldOmit bool
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				shouldOmit = p == 0 // omitzero takes precedence: skip only nil
+			} else {
+				shouldOmit = p == 0 || maplen(ptrToUnsafePtr(p)) == 0 // omitempty only: skip nil or empty
+			}
+			if shouldOmit {
 				code = code.NextField
 			} else {
-				// Apply indirect pointer normalization if needed
-				if (code.Flags & encoder.IndirectFlags) != 0 {
-					p = ptrToNPtr(p, code.PtrNum)
-				}
 				// Encode the map field
 				b = appendStructKey(ctx, code, b)
 				code = code.Next
@@ -3517,10 +3548,29 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.Next
 			}
 		case encoder.OpStructField:
+			p := load(ctxptr, code.Idx)
+			p += uintptr(code.Offset)
+			// Check OmitZero flag: skip field if struct is zero-valued
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				// For pointer fields with omitzero: only check if pointer is nil
+				// For value struct fields with omitzero: check if struct is zero-valued
+				if (code.Flags & encoder.IsNextOpPtrTypeFlags) != 0 {
+					// Pointer field: omit only if nil
+					if ptrToPtr(p) == 0 {
+						code = code.NextField
+						break
+					}
+				} else {
+					// Value struct field: omit if struct is zero-valued
+					if isStructZero(code.Type, p) {
+						code = code.NextField
+						break
+					}
+				}
+			}
 			if code.Flags&encoder.IsTaggedKeyFlags != 0 || code.Flags&encoder.AnonymousKeyFlags == 0 {
 				b = appendStructKey(ctx, code, b)
 			}
-			p := load(ctxptr, code.Idx) + uintptr(code.Offset)
 			code = code.Next
 			store(ctxptr, code.Idx, p)
 		case encoder.OpStructFieldOmitEmpty:
@@ -4602,12 +4652,19 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if p != 0 {
 				p = ptrToNPtr(p, code.PtrNum)
 			}
-			if p != 0 {
+			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
+			var shouldOmit bool
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				shouldOmit = p == 0 // omitzero takes precedence: skip only nil
+			} else {
+				shouldOmit = p == 0 || maplen(ptrToUnsafePtr(p)) == 0 // omitempty only: skip nil or empty
+			}
+			if shouldOmit {
+				code = code.NextField
+			} else {
 				b = appendStructKey(ctx, code, b)
 				code = code.Next
 				store(ctxptr, code.Idx, p)
-			} else {
-				code = code.NextField
 			}
 		case encoder.OpStructFieldStruct:
 			p := load(ctxptr, code.Idx)
