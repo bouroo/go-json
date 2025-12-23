@@ -3,15 +3,14 @@ package vm_indent
 
 import (
 	"encoding/json"
-	"fmt"
-	"reflect"
 	"unsafe"
 
 	"github.com/goccy/go-json/internal/encoder"
 	"github.com/goccy/go-json/internal/runtime"
 )
 
-const uintptrSize = 4 << (^uintptr(0) >> 63)
+// Shared constants - imported from encoder package
+const uintptrSize = encoder.UintptrSize
 
 var (
 	appendInt           = encoder.AppendInt
@@ -32,22 +31,9 @@ var (
 	maplen              = encoder.MapLen
 )
 
-type emptyInterface struct {
-	typ *runtime.Type
-	ptr unsafe.Pointer
-}
-
-type nonEmptyInterface struct {
-	itab *struct {
-		ityp *runtime.Type // static interface type
-		typ  *runtime.Type // dynamic concrete type
-		// unused fields...
-	}
-	ptr unsafe.Pointer
-}
-
+// errUnimplementedOp - variant-specific wrapper around shared function
 func errUnimplementedOp(op encoder.OpType) error {
-	return fmt.Errorf("encoder (indent): opcode %s has not been implemented", op)
+	return encoder.ErrUnimplementedOp(op, "encoder (indent)")
 }
 
 func load(base uintptr, idx uint32) uintptr {
@@ -108,6 +94,21 @@ func ptrToNPtr(p uintptr, ptrNum uint8) uintptr {
 func ptrToUnsafePtr(p uintptr) unsafe.Pointer {
 	return *(*unsafe.Pointer)(unsafe.Pointer(&p))
 }
+
+type emptyInterface struct {
+	typ *runtime.Type
+	ptr unsafe.Pointer
+}
+
+type nonEmptyInterface struct {
+	itab *struct {
+		ityp *runtime.Type // static interface type
+		typ  *runtime.Type // dynamic concrete type
+		// unused fields...
+	}
+	ptr unsafe.Pointer
+}
+
 func ptrToInterface(code *encoder.Opcode, p uintptr) interface{} {
 	return *(*interface{})(unsafe.Pointer(&emptyInterface{
 		typ: code.Type,
@@ -228,63 +229,14 @@ func appendMapKeyIndent(ctx *encoder.RuntimeContext, code *encoder.Opcode, b []b
 
 // callIsZeroMethod calls the IsZero() method on a value if it exists.
 // Used for omitzero tag support when a custom IsZero() method is present.
+// This is a wrapper function that delegates to encoder.CallIsZeroMethod.
 func callIsZeroMethod(code *encoder.Opcode, ptr uintptr) bool {
-	if code.Type == nil || ptr == 0 {
-		return false
-	}
-
-	rtType := code.Type
-
-	// Check if the type (or its pointer) has IsZero method
-	_, found := rtType.MethodByName("IsZero")
-	if !found {
-		// Try pointer type if the original type doesn't have the method
-		if rtType.Kind() != reflect.Ptr {
-			ptrType := runtime.PtrTo(rtType)
-			_, found = ptrType.MethodByName("IsZero")
-			if !found {
-				return false
-			}
-		} else {
-			return false
-		}
-	}
-
-	// Convert the runtime.Type pointer value to an interface{}
-	// This allows us to use reflect.ValueOf to get a reflect.Value
-	v := ptrToInterface(code, ptr)
-	reflectValue := reflect.ValueOf(v)
-
-	// Call the IsZero() method through reflection
-	method := reflectValue.MethodByName("IsZero")
-	if !method.IsValid() {
-		return false
-	}
-
-	results := method.Call([]reflect.Value{})
-	if len(results) > 0 && results[0].Kind() == reflect.Bool {
-		return results[0].Bool()
-	}
-	return false
+	return encoder.CallIsZeroMethod(code, ptr)
 }
 
 // isStructZero checks if a struct value is zero-valued.
 // Uses custom IsZero() method if available, otherwise falls back to reflect.Value.IsZero().
+// This is a wrapper function that delegates to encoder.IsStructZero.
 func isStructZero(typ *runtime.Type, ptr uintptr) bool {
-	if typ == nil || ptr == 0 {
-		return false
-	}
-
-	// Create an opcode temporarily to use ptrToInterface
-	code := &encoder.Opcode{Type: typ}
-
-	// First check if the type has a custom IsZero method
-	if encoder.HasIsZeroMethod(typ) {
-		return callIsZeroMethod(code, ptr)
-	}
-
-	// Fall back to reflection-based zero detection
-	v := ptrToInterface(code, ptr)
-	reflectValue := reflect.ValueOf(v)
-	return reflectValue.IsZero()
+	return encoder.IsStructZero(typ, ptr)
 }
