@@ -307,8 +307,6 @@ func (c *Opcode) ToFieldType(isString bool) OpType {
 		return OpStructFieldMarshalText
 	case OpMarshalTextPtr:
 		return OpStructFieldMarshalTextPtr
-	case OpStruct:
-		return OpStructFieldStruct
 	}
 	return OpStructField
 }
