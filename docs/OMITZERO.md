@@ -161,8 +161,12 @@ type Example struct {
 
 **Important:** When combining with `omitempty`:
 - `omitzero,omitzero`: Same as `omitzero` only
-- `omitempty,omitzero`: `omitempty` takes precedence (omits nil AND empty)
+- `omitempty,omitzero`: **`omitzero` takes precedence** (omits only nil, NOT empty)
 - `omitzero,omitempty`: Same as above (order doesn't matter)
+
+This means for slices and maps with both tags:
+- `nil` → omitted
+- `[]` or `{}` (empty) → **included** (different from `omitempty` alone)
 
 ## String Conversion
 

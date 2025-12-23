@@ -53,3 +53,14 @@ func encodeByEncodingJSON(data interface{}, indent, escape bool) string {
 	enc.Encode(data)
 	return buf.String()
 }
+
+func encodeJSONStringWithIndent(jsonStr string) string {
+	var buf bytes.Buffer
+	enc := stdjson.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	// Parse and re-encode to add proper indentation
+	var data interface{}
+	stdjson.Unmarshal([]byte(jsonStr), &data)
+	enc.Encode(data)
+	return buf.String()
+}

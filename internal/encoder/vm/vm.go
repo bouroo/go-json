@@ -2893,10 +2893,10 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			slice := ptrToSlice(p)
 			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
 			var shouldOmit bool
-			if (code.Flags&encoder.OmitZeroFlags != 0) && (code.Flags&encoder.OmitEmptyFlags == 0) {
-				shouldOmit = slice.Data == nil // omitzero: skip only nil
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				shouldOmit = slice.Data == nil // omitzero takes precedence: skip only nil
 			} else {
-				shouldOmit = slice.Len == 0 // omitempty or both: skip nil or empty
+				shouldOmit = slice.Len == 0 // omitempty only: skip nil or empty
 			}
 			if shouldOmit {
 				code = code.NextField
@@ -3040,10 +3040,10 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			}
 			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
 			var shouldOmit bool
-			if (code.Flags&encoder.OmitZeroFlags != 0) && (code.Flags&encoder.OmitEmptyFlags == 0) {
-				shouldOmit = p == 0 // omitzero: skip only nil
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				shouldOmit = p == 0 // omitzero takes precedence: skip only nil
 			} else {
-				shouldOmit = maplen(ptrToUnsafePtr(p)) == 0 // omitempty or both: skip nil or empty
+				shouldOmit = maplen(ptrToUnsafePtr(p)) == 0 // omitempty only: skip nil or empty
 			}
 			if shouldOmit {
 				code = code.NextField
@@ -4512,10 +4512,10 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			slice := ptrToSlice(p)
 			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
 			var shouldOmit bool
-			if (code.Flags&encoder.OmitZeroFlags != 0) && (code.Flags&encoder.OmitEmptyFlags == 0) {
-				shouldOmit = slice.Data == nil // omitzero: skip only nil
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				shouldOmit = slice.Data == nil // omitzero takes precedence: skip only nil
 			} else {
-				shouldOmit = slice.Len == 0 // omitempty or both: skip nil or empty
+				shouldOmit = slice.Len == 0 // omitempty only: skip nil or empty
 			}
 			if shouldOmit {
 				code = code.NextField
@@ -4562,10 +4562,10 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			p = ptrToPtr(p + uintptr(code.Offset))
 			// Distinguish omitzero (skip only nil) from omitempty (skip nil or empty)
 			var shouldOmit bool
-			if (code.Flags&encoder.OmitZeroFlags != 0) && (code.Flags&encoder.OmitEmptyFlags == 0) {
-				shouldOmit = p == 0 // omitzero: skip only nil
+			if code.Flags&encoder.OmitZeroFlags != 0 {
+				shouldOmit = p == 0 // omitzero takes precedence: skip only nil
 			} else {
-				shouldOmit = p == 0 || maplen(ptrToUnsafePtr(p)) == 0 // omitempty or both: skip nil or empty
+				shouldOmit = p == 0 || maplen(ptrToUnsafePtr(p)) == 0 // omitempty only: skip nil or empty
 			}
 			if shouldOmit {
 				code = code.NextField
