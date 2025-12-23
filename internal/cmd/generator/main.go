@@ -15,10 +15,10 @@ import (
 )
 
 type vmVariant struct {
-	Package    string
-	HasColor   bool
-	HasIndent  bool
-	IsBase     bool
+	Package   string
+	HasColor  bool
+	HasIndent bool
+	IsBase    bool
 }
 
 type opType struct {

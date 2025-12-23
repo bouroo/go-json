@@ -91,18 +91,18 @@ func (c *Opcode) IsEnd() bool {
 }
 
 func (c *Opcode) MaxIdx() uint32 {
-	max := uint32(0)
+	maxIdx := uint32(0)
 	for _, value := range []uint32{
 		c.Idx,
 		c.ElemIdx,
 		c.Length,
 		c.Size,
 	} {
-		if max < value {
-			max = value
+		if maxIdx < value {
+			maxIdx = value
 		}
 	}
-	return max
+	return maxIdx
 }
 
 func (c *Opcode) ToHeaderType(isString bool) OpType {
@@ -334,22 +334,22 @@ func copyOpcode(code *Opcode) *Opcode {
 	c := code
 	for {
 		*ptr = Opcode{
-			Op:         c.Op,
-			Key:        c.Key,
-			PtrNum:     c.PtrNum,
-			NumBitSize: c.NumBitSize,
-			Flags:      c.Flags,
-			Idx:        c.Idx,
-			Offset:     c.Offset,
-			Type:       c.Type,
-			FieldQuery: c.FieldQuery,
-			DisplayIdx: c.DisplayIdx,
-			DisplayKey: c.DisplayKey,
-			ElemIdx:    c.ElemIdx,
-			Length:     c.Length,
-			Size:       c.Size,
-			Indent:     c.Indent,
-			Jmp:        c.Jmp,
+			Op:              c.Op,
+			Key:             c.Key,
+			PtrNum:          c.PtrNum,
+			NumBitSize:      c.NumBitSize,
+			Flags:           c.Flags,
+			Idx:             c.Idx,
+			Offset:          c.Offset,
+			Type:            c.Type,
+			FieldQuery:      c.FieldQuery,
+			DisplayIdx:      c.DisplayIdx,
+			DisplayKey:      c.DisplayKey,
+			ElemIdx:         c.ElemIdx,
+			Length:          c.Length,
+			Size:            c.Size,
+			Indent:          c.Indent,
+			Jmp:             c.Jmp,
 			HasIsZeroMethod: c.HasIsZeroMethod,
 		}
 		if c.End != nil {

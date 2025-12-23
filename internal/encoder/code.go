@@ -1,7 +1,6 @@
 package encoder
 
 import (
-	"fmt"
 	"reflect"
 	"unsafe"
 
@@ -10,12 +9,12 @@ import (
 
 type Code interface {
 	Kind() CodeKind
-	ToOpcode(*compileContext) Opcodes
-	Filter(*FieldQuery) Code
+	ToOpcode(ctx *compileContext) Opcodes
+	Filter(query *FieldQuery) Code
 }
 
 type AnonymousCode interface {
-	ToAnonymousOpcode(*compileContext) Opcodes
+	ToAnonymousOpcode(ctx *compileContext) Opcodes
 }
 
 type Opcodes []*Opcode
@@ -732,9 +731,9 @@ func (c *StructFieldCode) addStructEndCode(ctx *compileContext, codes Opcodes) O
 func (c *StructFieldCode) structKey(ctx *compileContext) string {
 	if ctx.escapeKey {
 		rctx := &RuntimeContext{Option: &Option{Flag: HTMLEscapeOption}}
-		return fmt.Sprintf(`%s:`, string(AppendString(rctx, []byte{}, c.key)))
+		return string(AppendString(rctx, []byte{}, c.key)) + ":"
 	}
-	return fmt.Sprintf(`"%s":`, c.key)
+	return `"` + c.key + `":`
 }
 
 func (c *StructFieldCode) flags() OpFlags {
