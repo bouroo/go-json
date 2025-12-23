@@ -658,7 +658,7 @@ func (c *StructFieldCode) headerOpcodes(ctx *compileContext, field *Opcode, valu
 	// Set OmitZero flag if tag specifies omitzero
 	if c.tag.IsOmitZero {
 		field.Flags |= OmitZeroFlags
-		field.HasIsZeroMethod = hasIsZeroMethod(c.typ)
+		field.HasIsZeroMethod = HasIsZeroMethod(c.typ)
 	}
 	// Set OmitEmpty flag if tag specifies omitempty
 	if c.tag.IsOmitEmpty {
@@ -687,7 +687,7 @@ func (c *StructFieldCode) fieldOpcodes(ctx *compileContext, field *Opcode, value
 	// Set OmitZero flag if tag specifies omitzero
 	if c.tag.IsOmitZero {
 		field.Flags |= OmitZeroFlags
-		field.HasIsZeroMethod = hasIsZeroMethod(c.typ)
+		field.HasIsZeroMethod = HasIsZeroMethod(c.typ)
 	}
 	// Set OmitEmpty flag if tag specifies omitempty
 	if c.tag.IsOmitEmpty {

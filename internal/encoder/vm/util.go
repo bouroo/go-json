@@ -202,33 +202,6 @@ func storeIndent(_ uintptr, _ *encoder.Opcode, _ uintptr)                       
 func appendMapKeyIndent(_ *encoder.RuntimeContext, _ *encoder.Opcode, b []byte) []byte    { return b }
 func appendArrayElemIndent(_ *encoder.RuntimeContext, _ *encoder.Opcode, b []byte) []byte { return b }
 
-// hasIsZeroMethod checks if the type has a custom IsZero() bool method.
-func hasIsZeroMethod(typ *runtime.Type) bool {
-	// Check if type has IsZero() bool method
-	method, found := typ.MethodByName("IsZero")
-	if found {
-		// Verify signature: no parameters, one bool return
-		if method.Type.NumIn() == 1 && // receiver only
-			method.Type.NumOut() == 1 &&
-			method.Type.Out(0).Kind() == reflect.Bool {
-			return true
-		}
-	}
-	// Check pointer type if original type is not a pointer
-	if typ.Kind() != reflect.Ptr {
-		ptrTyp := runtime.PtrTo(typ)
-		ptrMethod, found := ptrTyp.MethodByName("IsZero")
-		if found {
-			if ptrMethod.Type.NumIn() == 1 && // receiver only
-				ptrMethod.Type.NumOut() == 1 &&
-				ptrMethod.Type.Out(0).Kind() == reflect.Bool {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // callIsZeroMethod calls the IsZero() method on a value if it exists.
 // Used for omitzero tag support when a custom IsZero() method is present.
 func callIsZeroMethod(code *encoder.Opcode, ptr uintptr) bool {
@@ -282,7 +255,7 @@ func isStructZero(typ *runtime.Type, ptr uintptr) bool {
 	code := &encoder.Opcode{Type: typ}
 
 	// First check if the type has a custom IsZero method
-	if hasIsZeroMethod(typ) {
+	if encoder.HasIsZeroMethod(typ) {
 		return callIsZeroMethod(code, ptr)
 	}
 

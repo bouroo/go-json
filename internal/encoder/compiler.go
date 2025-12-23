@@ -892,32 +892,6 @@ func (c *Compiler) isPtrMarshalTextType(typ *runtime.Type) bool {
 	return !typ.Implements(marshalTextType) && runtime.PtrTo(typ).Implements(marshalTextType)
 }
 
-func hasIsZeroMethod(typ *runtime.Type) bool {
-	// Check if type has IsZero() bool method
-	method, found := typ.MethodByName("IsZero")
-	if found {
-		// Verify signature: no parameters, one bool return
-		if method.Type.NumIn() == 1 && // receiver only
-			method.Type.NumOut() == 1 &&
-			method.Type.Out(0).Kind() == reflect.Bool {
-			return true
-		}
-	}
-	// Check pointer type if original type is not a pointer
-	if typ.Kind() != reflect.Ptr {
-		ptrTyp := runtime.PtrTo(typ)
-		ptrMethod, found := ptrTyp.MethodByName("IsZero")
-		if found {
-			if ptrMethod.Type.NumIn() == 1 && // receiver only
-				ptrMethod.Type.NumOut() == 1 &&
-				ptrMethod.Type.Out(0).Kind() == reflect.Bool {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func (c *Compiler) codeToOpcode(ctx *compileContext, typ *runtime.Type, code Code) *Opcode {
 	codes := code.ToOpcode(ctx)
 	codes.Last().Next = newEndOp(ctx, typ)
