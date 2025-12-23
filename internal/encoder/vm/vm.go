@@ -3132,10 +3132,12 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.End.Next
 				break
 			}
+			// Normalize multi-level pointer and fallthrough to shared logic
 			store(ctxptr, code.Idx, ptrToNPtr(p, code.PtrNum))
 			fallthrough
 		case encoder.OpStructHeadOmitEmptyMapPtr:
 			p := load(ctxptr, code.Idx)
+			// Handle indirect pointer null case
 			if p == 0 && (code.Flags&encoder.IndirectFlags) != 0 {
 				if code.Flags&encoder.AnonymousHeadFlags == 0 {
 					b = appendNullComma(ctx, b)
@@ -3143,20 +3145,26 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.End.Next
 				break
 			}
+			// Start struct object (skip for anonymous embedded fields)
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
+			// Skip field if base pointer is null
 			if p == 0 {
 				code = code.NextField
 				break
 			}
+			// Resolve field pointer from offset
 			p = ptrToPtr(p + uintptr(code.Offset))
 			if p == 0 {
+				// Field pointer is null, skip to next field
 				code = code.NextField
 			} else {
+				// Apply indirect pointer normalization if needed
 				if (code.Flags & encoder.IndirectFlags) != 0 {
 					p = ptrToNPtr(p, code.PtrNum)
 				}
+				// Encode the map field
 				b = appendStructKey(ctx, code, b)
 				code = code.Next
 				store(ctxptr, code.Idx, p)
