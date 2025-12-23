@@ -614,9 +614,17 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			} else {
 				// Check OmitZero flag: skip field if struct is zero-valued
 				if code.Flags&encoder.OmitZeroFlags != 0 {
-					if isStructZero(code.Type, p) {
-						code = code.NextField
-						break
+					// For pointer fields with omitzero: only check if pointer is nil
+					// For value struct fields with omitzero: check if struct is zero-valued
+					if (code.Flags & encoder.IsNextOpPtrTypeFlags) != 0 {
+						// Pointer field: omit only if nil (already checked above)
+						// If we reach here, pointer is non-nil, so include the field
+					} else {
+						// Value struct field: omit if struct is zero-valued
+						if isStructZero(code.Type, p) {
+							code = code.NextField
+							break
+						}
 					}
 				}
 				b = appendStructKey(ctx, code, b)
@@ -3515,9 +3523,17 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			} else {
 				// Check OmitZero flag: skip field if struct is zero-valued
 				if code.Flags&encoder.OmitZeroFlags != 0 {
-					if isStructZero(code.Type, p) {
-						code = code.NextField
-						break
+					// For pointer fields with omitzero: only check if pointer is nil
+					// For value struct fields with omitzero: check if struct is zero-valued
+					if (code.Flags & encoder.IsNextOpPtrTypeFlags) != 0 {
+						// Pointer field: omit only if nil (already checked above)
+						// If we reach here, pointer is non-nil, so include the field
+					} else {
+						// Value struct field: omit if struct is zero-valued
+						if isStructZero(code.Type, p) {
+							code = code.NextField
+							break
+						}
 					}
 				}
 				b = appendStructKey(ctx, code, b)
@@ -4606,15 +4622,17 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			} else {
 				// Check OmitZero flag: skip field if struct is zero-valued
 				if code.Flags&encoder.OmitZeroFlags != 0 {
-					// For pointers, need to dereference first
-					ptr := p
+					// For pointer fields with omitzero: only check if pointer is nil
+					// For value struct fields with omitzero: check if struct is zero-valued
 					if (code.Flags & encoder.IsNextOpPtrTypeFlags) != 0 {
-						ptr = ptrToPtr(p)
-					}
-					// Omit if base pointer is nil OR dereferenced pointer is nil OR struct is zero-valued
-					if p == 0 || ptr == 0 || isStructZero(code.Type, ptr) {
-						code = code.NextField
-						break
+						// Pointer field: omit only if nil (already checked above)
+						// If we reach here, pointer is non-nil, so include the field
+					} else {
+						// Value struct field: omit if struct is zero-valued
+						if isStructZero(code.Type, p) {
+							code = code.NextField
+							break
+						}
 					}
 				}
 				b = appendStructKey(ctx, code, b)
@@ -5340,16 +5358,18 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			} else {
 				// Check OmitZero flag: skip field if struct is zero-valued
 				if code.Flags&encoder.OmitZeroFlags != 0 {
-					// For pointers, need to dereference first
-					ptr := p
+					// For pointer fields with omitzero: only check if pointer is nil
+					// For value struct fields with omitzero: check if struct is zero-valued
 					if (code.Flags & encoder.IsNextOpPtrTypeFlags) != 0 {
-						ptr = ptrToPtr(p)
-					}
-					// Omit if base pointer is nil OR dereferenced pointer is nil OR struct is zero-valued
-					if p == 0 || ptr == 0 || isStructZero(code.Type, ptr) {
-						b = appendStructEndSkipLast(ctx, code, b)
-						code = code.Next
-						break
+						// Pointer field: omit only if nil (already checked above)
+						// If we reach here, pointer is non-nil, so include the field
+					} else {
+						// Value struct field: omit if struct is zero-valued
+						if isStructZero(code.Type, p) {
+							b = appendStructEndSkipLast(ctx, code, b)
+							code = code.Next
+							break
+						}
 					}
 				}
 				b = appendStructEnd(ctx, code, b)
