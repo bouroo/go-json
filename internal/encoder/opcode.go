@@ -51,7 +51,9 @@ type Opcode struct {
 	DisplayIdx uint32        // opcode index
 	DisplayKey string        // key text to display
 
-	HasIsZeroMethod bool // whether the type has IsZero() method
+	HasIsZeroMethod      bool        // whether the type has IsZero() method
+	IsZeroMethodFunc     interface{} // cached method.Func for IsZero() method
+	IsZeroMethodNeedsPtr bool        // true if IsZero() method requires pointer receiver
 }
 
 func (c *Opcode) Validate() error {
@@ -332,23 +334,25 @@ func copyOpcode(code *Opcode) *Opcode {
 	c := code
 	for {
 		*ptr = Opcode{
-			Op:              c.Op,
-			Key:             c.Key,
-			PtrNum:          c.PtrNum,
-			NumBitSize:      c.NumBitSize,
-			Flags:           c.Flags,
-			Idx:             c.Idx,
-			Offset:          c.Offset,
-			Type:            c.Type,
-			FieldQuery:      c.FieldQuery,
-			DisplayIdx:      c.DisplayIdx,
-			DisplayKey:      c.DisplayKey,
-			ElemIdx:         c.ElemIdx,
-			Length:          c.Length,
-			Size:            c.Size,
-			Indent:          c.Indent,
-			Jmp:             c.Jmp,
-			HasIsZeroMethod: c.HasIsZeroMethod,
+			Op:                   c.Op,
+			Key:                  c.Key,
+			PtrNum:               c.PtrNum,
+			NumBitSize:           c.NumBitSize,
+			Flags:                c.Flags,
+			Idx:                  c.Idx,
+			Offset:               c.Offset,
+			Type:                 c.Type,
+			FieldQuery:           c.FieldQuery,
+			DisplayIdx:           c.DisplayIdx,
+			DisplayKey:           c.DisplayKey,
+			ElemIdx:              c.ElemIdx,
+			Length:               c.Length,
+			Size:                 c.Size,
+			Indent:               c.Indent,
+			Jmp:                  c.Jmp,
+			HasIsZeroMethod:      c.HasIsZeroMethod,
+			IsZeroMethodFunc:     c.IsZeroMethodFunc,
+			IsZeroMethodNeedsPtr: c.IsZeroMethodNeedsPtr,
 		}
 		if c.End != nil {
 			ptr.End = getCodeAddrByIdx(head, c.End.DisplayIdx)
