@@ -251,7 +251,8 @@ func stringBytes(s *Stream) ([]byte, error) {
 			goto ERROR
 		case 0xEF:
 			// RuneError is {0xEF, 0xBF, 0xBD}
-			if s.buf[cursor+1] == 0xBF && s.buf[cursor+2] == 0xBD {
+			// Ensure we have enough bytes to check for RuneError sequence
+			if cursor+2 < int64(len(s.buf)) && s.buf[cursor+1] == 0xBF && s.buf[cursor+2] == 0xBD {
 				// found RuneError: skip
 				cursor += 2
 				break
@@ -259,6 +260,15 @@ func stringBytes(s *Stream) ([]byte, error) {
 			fallthrough
 		default:
 			// multi bytes character
+			// Ensure cursor is within valid bounds before creating slice
+			if cursor >= int64(len(s.buf))-1 {
+				s.cursor = cursor
+				if s.read() {
+					_, cursor, p = s.stat()
+					continue
+				}
+				goto ERROR
+			}
 			if !utf8.FullRune(s.buf[cursor : len(s.buf)-1]) {
 				s.cursor = cursor
 				if s.read() {

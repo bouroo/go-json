@@ -32,6 +32,7 @@ If you have the API you need, please submit your issue [here](https://github.com
 - Coloring the encoded string
 - Can propagate context.Context to `MarshalJSON` or `UnmarshalJSON`
 - Can dynamically filter the fields of the structure type-safely
+- **Go 1.24 `omitzero` support** - Omit zero values from JSON output
 
 # Installation
 
@@ -47,6 +48,30 @@ Replace import statement from `encoding/json` to `github.com/goccy/go-json`
 -import "encoding/json"
 +import "github.com/goccy/go-json"
 ```
+
+## OmitZero Support
+
+Go 1.24 introduces the `omitzero` struct tag for omitting zero values from JSON output. go-json provides full support with 100% compatibility.
+
+```go
+type User struct {
+    ID     int     `json:"id,omitzero"`
+    Name   string  `json:"name,omitzero"`
+    Active bool    `json:"active,omitzero"`
+    Data   []int   `json:"data,omitzero"`
+}
+
+user := User{
+    ID:     0,     // omitted
+    Name:   "",     // omitted
+    Active: false, // omitted
+    Data:   nil,   // omitted
+}
+
+json.Marshal(user) // Output: {}
+```
+
+Learn more in the [OmitZero Guide](docs/OMITZERO.md).
 
 # JSON library comparison
 

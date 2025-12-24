@@ -9,9 +9,9 @@ import (
 )
 
 type Decoder interface {
-	Decode(*RuntimeContext, int64, int64, unsafe.Pointer) (int64, error)
-	DecodePath(*RuntimeContext, int64, int64) ([][]byte, int64, error)
-	DecodeStream(*Stream, int64, unsafe.Pointer) error
+	Decode(ctx *RuntimeContext, cursor, length int64, p unsafe.Pointer) (int64, error)
+	DecodePath(ctx *RuntimeContext, cursor, length int64) ([][]byte, int64, error)
+	DecodeStream(s *Stream, cursor int64, p unsafe.Pointer) error
 }
 
 const (
@@ -20,7 +20,7 @@ const (
 )
 
 type unmarshalerContext interface {
-	UnmarshalJSON(context.Context, []byte) error
+	UnmarshalJSON(ctx context.Context, data []byte) error
 }
 
 var (

@@ -46,33 +46,44 @@ func AnalyzeTypeAddr() *TypeAddr {
 		section := sections[0]
 		offset := offsets[0]
 		var (
-			min         uintptr = uintptr(^uint(0))
-			max         uintptr = 0
-			isAligned64         = true
-			isAligned32         = true
+			minAddr uintptr = uintptr(^uint(0))
+			maxAddr uintptr = 0
 		)
+		// First pass: find the final minAddr and maxAddr
 		for i := 0; i < len(offset); i++ {
 			typ := (*Type)(rtypeOff(section, offset[i]))
 			addr := uintptr(unsafe.Pointer(typ))
-			if min > addr {
-				min = addr
+			if minAddr > addr {
+				minAddr = addr
 			}
-			if max < addr {
-				max = addr
+			if maxAddr < addr {
+				maxAddr = addr
 			}
 			if typ.Kind() == reflect.Ptr {
 				addr = uintptr(unsafe.Pointer(typ.Elem()))
-				if min > addr {
-					min = addr
+				if minAddr > addr {
+					minAddr = addr
 				}
-				if max < addr {
-					max = addr
+				if maxAddr < addr {
+					maxAddr = addr
 				}
 			}
-			isAligned64 = isAligned64 && (addr-min)&63 == 0
-			isAligned32 = isAligned32 && (addr-min)&31 == 0
 		}
-		addrRange := max - min
+		// Second pass: check alignment against the final minAddr
+		isAligned64 := true
+		isAligned32 := true
+		for i := 0; i < len(offset); i++ {
+			typ := (*Type)(rtypeOff(section, offset[i]))
+			addr := uintptr(unsafe.Pointer(typ))
+			isAligned64 = isAligned64 && (addr-minAddr)&63 == 0
+			isAligned32 = isAligned32 && (addr-minAddr)&31 == 0
+			if typ.Kind() == reflect.Ptr {
+				addr = uintptr(unsafe.Pointer(typ.Elem()))
+				isAligned64 = isAligned64 && (addr-minAddr)&63 == 0
+				isAligned32 = isAligned32 && (addr-minAddr)&31 == 0
+			}
+		}
+		addrRange := maxAddr - minAddr
 		if addrRange == 0 {
 			return
 		}
@@ -87,8 +98,8 @@ func AnalyzeTypeAddr() *TypeAddr {
 			return
 		}
 		typeAddr = &TypeAddr{
-			BaseTypeAddr: min,
-			MaxTypeAddr:  max,
+			BaseTypeAddr: minAddr,
+			MaxTypeAddr:  maxAddr,
 			AddrRange:    addrRange,
 			AddrShift:    addrShift,
 		}

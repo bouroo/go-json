@@ -14,6 +14,13 @@ import (
 	"text/template"
 )
 
+type vmVariant struct {
+	Package   string
+	HasColor  bool
+	HasIndent bool
+	IsBase    bool
+}
+
 type opType struct {
 	Op   string
 	Code string
@@ -302,6 +309,43 @@ func generateVM() error {
 	return nil
 }
 
+func generateUtil() error {
+	templateContent, err := os.ReadFile("util.go.tmpl")
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := template.New("util").Parse(string(templateContent))
+	if err != nil {
+		return err
+	}
+
+	variants := []vmVariant{
+		{Package: "vm", IsBase: true},
+		{Package: "vm_color", HasColor: true},
+		{Package: "vm_indent", HasIndent: true},
+		{Package: "vm_color_indent", HasColor: true, HasIndent: true},
+	}
+
+	for _, v := range variants {
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, v); err != nil {
+			return err
+		}
+
+		path := filepath.Join(repoRoot(), "internal", "encoder", v.Package, "util.go")
+		source, err := format.Source(buf.Bytes())
+		if err != nil {
+			return fmt.Errorf("failed to format %s: %w", v.Package, err)
+		}
+
+		if err := os.WriteFile(path, source, 0644); err != nil {
+			return fmt.Errorf("failed to write %s: %w", v.Package, err)
+		}
+	}
+	return nil
+}
+
 func repoRoot() string {
 	_, file, _, _ := runtime.Caller(0)
 	relativePathFromRepoRoot := filepath.Join("internal", "cmd", "generator")
@@ -311,6 +355,9 @@ func repoRoot() string {
 //go:generate go run main.go
 func main() {
 	if err := generateVM(); err != nil {
+		panic(err)
+	}
+	if err := generateUtil(); err != nil {
 		panic(err)
 	}
 	if err := _main(); err != nil {

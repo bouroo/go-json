@@ -1,7 +1,6 @@
 package encoder
 
 import (
-	"fmt"
 	"reflect"
 	"unsafe"
 
@@ -10,12 +9,12 @@ import (
 
 type Code interface {
 	Kind() CodeKind
-	ToOpcode(*compileContext) Opcodes
-	Filter(*FieldQuery) Code
+	ToOpcode(ctx *compileContext) Opcodes
+	Filter(query *FieldQuery) Code
 }
 
 type AnonymousCode interface {
-	ToAnonymousOpcode(*compileContext) Opcodes
+	ToAnonymousOpcode(ctx *compileContext) Opcodes
 }
 
 type Opcodes []*Opcode
@@ -634,7 +633,7 @@ func (c *StructFieldCode) getAnonymousStruct() *StructCode {
 
 func optimizeStructHeader(code *Opcode, tag *runtime.StructTag) OpType {
 	headType := code.ToHeaderType(tag.IsString)
-	if tag.IsOmitEmpty {
+	if tag.IsOmitEmpty || tag.IsOmitZero {
 		headType = headType.HeadToOmitEmptyHead()
 	}
 	return headType
@@ -642,7 +641,7 @@ func optimizeStructHeader(code *Opcode, tag *runtime.StructTag) OpType {
 
 func optimizeStructField(code *Opcode, tag *runtime.StructTag) OpType {
 	fieldType := code.ToFieldType(tag.IsString)
-	if tag.IsOmitEmpty {
+	if tag.IsOmitEmpty || tag.IsOmitZero {
 		fieldType = fieldType.FieldToOmitEmptyField()
 	}
 	return fieldType
@@ -654,6 +653,18 @@ func (c *StructFieldCode) headerOpcodes(ctx *compileContext, field *Opcode, valu
 	field.Op = op
 	if value.Flags&MarshalerContextFlags != 0 {
 		field.Flags |= MarshalerContextFlags
+	}
+	// Set OmitZero flag if tag specifies omitzero
+	if c.tag.IsOmitZero {
+		field.Flags |= OmitZeroFlags
+		field.HasIsZeroMethod = HasIsZeroMethod(c.typ)
+		if field.HasIsZeroMethod {
+			field.IsZeroMethodFunc, field.IsZeroMethodNeedsPtr = CacheIsZeroMethod(c.typ)
+		}
+	}
+	// Set OmitEmpty flag if tag specifies omitempty
+	if c.tag.IsOmitEmpty {
+		field.Flags |= OmitEmptyFlags
 	}
 	field.NumBitSize = value.NumBitSize
 	field.PtrNum = value.PtrNum
@@ -674,6 +685,18 @@ func (c *StructFieldCode) fieldOpcodes(ctx *compileContext, field *Opcode, value
 	field.Op = op
 	if value.Flags&MarshalerContextFlags != 0 {
 		field.Flags |= MarshalerContextFlags
+	}
+	// Set OmitZero flag if tag specifies omitzero
+	if c.tag.IsOmitZero {
+		field.Flags |= OmitZeroFlags
+		field.HasIsZeroMethod = HasIsZeroMethod(c.typ)
+		if field.HasIsZeroMethod {
+			field.IsZeroMethodFunc, field.IsZeroMethodNeedsPtr = CacheIsZeroMethod(c.typ)
+		}
+	}
+	// Set OmitEmpty flag if tag specifies omitempty
+	if c.tag.IsOmitEmpty {
+		field.Flags |= OmitEmptyFlags
 	}
 	field.NumBitSize = value.NumBitSize
 	field.PtrNum = value.PtrNum
@@ -714,9 +737,9 @@ func (c *StructFieldCode) addStructEndCode(ctx *compileContext, codes Opcodes) O
 func (c *StructFieldCode) structKey(ctx *compileContext) string {
 	if ctx.escapeKey {
 		rctx := &RuntimeContext{Option: &Option{Flag: HTMLEscapeOption}}
-		return fmt.Sprintf(`%s:`, string(AppendString(rctx, []byte{}, c.key)))
+		return string(AppendString(rctx, []byte{}, c.key)) + ":"
 	}
-	return fmt.Sprintf(`"%s":`, c.key)
+	return `"` + c.key + `":`
 }
 
 func (c *StructFieldCode) flags() OpFlags {

@@ -91,6 +91,18 @@ func (c *RuntimeContext) Init(p uintptr, codelen int) {
 	c.BaseIndent = 0
 }
 
+func (c *RuntimeContext) Reset() {
+	c.Context = nil
+	c.Buf = c.Buf[:0]
+	c.MarshalBuf = c.MarshalBuf[:0]
+	c.Ptrs = c.Ptrs[:0]
+	c.KeepRefs = c.KeepRefs[:0]
+	c.SeenPtr = c.SeenPtr[:0]
+	c.BaseIndent = 0
+	c.Prefix = c.Prefix[:0]
+	c.IndentStr = c.IndentStr[:0]
+}
+
 func (c *RuntimeContext) Ptr() uintptr {
 	header := (*runtime.SliceHeader)(unsafe.Pointer(&c.Ptrs))
 	return uintptr(header.Data)
@@ -101,5 +113,6 @@ func TakeRuntimeContext() *RuntimeContext {
 }
 
 func ReleaseRuntimeContext(ctx *RuntimeContext) {
+	ctx.Reset()
 	runtimeContextPool.Put(ctx)
 }

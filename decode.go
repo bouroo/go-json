@@ -26,8 +26,14 @@ type emptyInterface struct {
 }
 
 func unmarshal(data []byte, v interface{}, optFuncs ...DecodeOptionFunc) error {
-	src := make([]byte, len(data)+1) // append nul byte to the end
-	copy(src, data)
+	var src []byte
+	if len(data)+1 <= cap(data) {
+		src = data[:len(data)+1]
+		src[len(data)] = 0
+	} else {
+		src = make([]byte, len(data)+1)
+		copy(src, data)
+	}
 
 	header := (*emptyInterface)(unsafe.Pointer(&v))
 
@@ -54,8 +60,14 @@ func unmarshal(data []byte, v interface{}, optFuncs ...DecodeOptionFunc) error {
 }
 
 func unmarshalContext(ctx context.Context, data []byte, v interface{}, optFuncs ...DecodeOptionFunc) error {
-	src := make([]byte, len(data)+1) // append nul byte to the end
-	copy(src, data)
+	var src []byte
+	if len(data)+1 <= cap(data) {
+		src = data[:len(data)+1]
+		src[len(data)] = 0
+	} else {
+		src = make([]byte, len(data)+1)
+		copy(src, data)
+	}
 
 	header := (*emptyInterface)(unsafe.Pointer(&v))
 
@@ -91,8 +103,14 @@ func extractFromPath(path *Path, data []byte, optFuncs ...DecodeOptionFunc) ([][
 	if path.path.RootSelectorOnly {
 		return [][]byte{data}, nil
 	}
-	src := make([]byte, len(data)+1) // append nul byte to the end
-	copy(src, data)
+	var src []byte
+	if len(data)+1 <= cap(data) {
+		src = data[:len(data)+1]
+		src[len(data)] = 0
+	} else {
+		src = make([]byte, len(data)+1)
+		copy(src, data)
+	}
 
 	ctx := decoder.TakeRuntimeContext()
 	ctx.Buf = src
@@ -144,7 +162,7 @@ func unmarshalNoEscape(data []byte, v interface{}, optFuncs ...DecodeOptionFunc)
 }
 
 func validateEndBuf(src []byte, cursor int64) error {
-	for {
+	for cursor < int64(len(src)) {
 		switch src[cursor] {
 		case ' ', '\t', '\n', '\r':
 			cursor++
@@ -157,6 +175,7 @@ func validateEndBuf(src []byte, cursor int64) error {
 			cursor+1,
 		)
 	}
+	return nil
 }
 
 //nolint:staticcheck

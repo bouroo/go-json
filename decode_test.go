@@ -4057,3 +4057,51 @@ func TestIssue429(t *testing.T) {
 		}
 	}
 }
+
+func TestSliceNilSafety(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []byte
+		dest  interface{}
+	}{
+		{
+			name:  "empty slice",
+			input: []byte(`[]`),
+			dest:  new([]int),
+		},
+		{
+			name:  "slice with elements",
+			input: []byte(`[1,2,3]`),
+			dest:  new([]int),
+		},
+		{
+			name:  "slice with null",
+			input: []byte(`null`),
+			dest:  new([]int),
+		},
+		{
+			name:  "byte slice",
+			input: []byte(`"aGVsbG8="`),
+			dest:  new([]byte),
+		},
+		{
+			name:  "byte slice - null",
+			input: []byte(`null`),
+			dest:  new([]byte),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Unmarshal() panicked unexpectedly: %v", r)
+				}
+			}()
+			err := json.Unmarshal(tt.input, tt.dest)
+			if err != nil {
+				t.Errorf("Unmarshal() error = %v", err)
+			}
+		})
+	}
+}

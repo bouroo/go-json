@@ -345,7 +345,7 @@ type PathNode interface {
 	Index(idx int) (PathNode, bool, error)
 	Field(fieldName string) (PathNode, bool, error)
 	Get(src, dst reflect.Value) error
-	chain(PathNode) PathNode
+	chain(node PathNode) PathNode
 	target() bool
 	single() bool
 }

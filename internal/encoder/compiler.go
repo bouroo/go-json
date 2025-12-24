@@ -14,7 +14,7 @@ import (
 )
 
 type marshalerContext interface {
-	MarshalJSON(context.Context) ([]byte, error)
+	MarshalJSON(ctx context.Context) ([]byte, error)
 }
 
 var (

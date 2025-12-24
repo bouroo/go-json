@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/goccy/go-json/internal/errors"
 	"github.com/goccy/go-json/internal/runtime"
 )
 
@@ -47,8 +48,13 @@ func (d *ptrDecoder) DecodeStream(s *Stream, depth int64, p unsafe.Pointer) erro
 		if err := nullBytes(s); err != nil {
 			return err
 		}
-		*(*unsafe.Pointer)(p) = nil
+		if p != nil {
+			*(*unsafe.Pointer)(p) = nil
+		}
 		return nil
+	}
+	if p == nil {
+		return &errors.InvalidUnmarshalError{Type: runtime.RType2Type(d.typ)}
 	}
 	var newptr unsafe.Pointer
 	if *(*unsafe.Pointer)(p) == nil {
@@ -75,6 +81,9 @@ func (d *ptrDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p unsafe.P
 		}
 		cursor += 4
 		return cursor, nil
+	}
+	if p == nil {
+		return 0, &errors.InvalidUnmarshalError{Type: runtime.RType2Type(d.typ)}
 	}
 	var newptr unsafe.Pointer
 	if *(*unsafe.Pointer)(p) == nil {

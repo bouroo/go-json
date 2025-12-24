@@ -1,8 +1,3 @@
-run:
-  skip-files:
-    - encode_optype.go
-    - ".*_test\\.go$"
-
 linters-settings:
   govet:
     enable-all: true
@@ -12,11 +7,12 @@ linters-settings:
 linters:
   enable-all: true
   disable:
+    - copyloopvar  # Go 1.22+ feature, not compatible with Go 1.18
     - dogsled
     - dupl
     - exhaustive
-    - exhaustivestruct
     - errorlint
+    - err113       # renamed from goerr113 (deprecated)
     - forbidigo
     - funlen
     - gci
@@ -27,26 +23,21 @@ linters:
     - gocyclo
     - godot
     - godox
-    - goerr113
     - gofumpt
-    - gomnd
     - gosec
-    - ifshort
+    - intrange     # Go 1.22+ feature, not compatible with Go 1.18
     - lll
+    - mnd
     - makezero
     - nakedret
     - nestif
     - nlreturn
     - paralleltest
+    - perfsprint
+    - tenv         # deprecated, replaced by usetesting
     - testpackage
     - thelper
     - wrapcheck
-    - interfacer
-    - lll
-    - nakedret
-    - nestif
-    - nlreturn
-    - testpackage
     - wsl
     - varnamelen
     - nilnil
@@ -56,11 +47,13 @@ linters:
     - cyclop
     - containedctx
     - revive
-    - nosnakecase
     - exhaustruct
     - depguard
 
 issues:
+  exclude-files:
+    - encode_optype.go
+    - ".*_test\\.go$"
   exclude-rules:
     # not needed
     - path: /*.go

@@ -11,7 +11,7 @@ type InvalidUTF8Error struct {
 }
 
 func (e *InvalidUTF8Error) Error() string {
-	return fmt.Sprintf("json: invalid UTF-8 in string: %s", strconv.Quote(e.S))
+	return "json: invalid UTF-8 in string: " + strconv.Quote(e.S)
 }
 
 type InvalidUnmarshalError struct {
@@ -106,7 +106,7 @@ type UnsupportedValueError struct {
 }
 
 func (e *UnsupportedValueError) Error() string {
-	return fmt.Sprintf("json: unsupported value: %s", e.Str)
+	return "json: unsupported value: " + e.Str
 }
 
 func ErrSyntax(msg string, offset int64) *SyntaxError {
@@ -140,13 +140,13 @@ func ErrUnexpectedEndOfJSON(msg string, cursor int64) *SyntaxError {
 }
 
 func ErrExpected(msg string, cursor int64) *SyntaxError {
-	return &SyntaxError{msg: fmt.Sprintf("expected %s", msg), Offset: cursor}
+	return &SyntaxError{msg: "expected " + msg, Offset: cursor}
 }
 
 func ErrInvalidCharacter(c byte, context string, cursor int64) *SyntaxError {
 	if c == 0 {
 		return &SyntaxError{
-			msg:    fmt.Sprintf("json: invalid character as %s", context),
+			msg:    "json: invalid character as " + context,
 			Offset: cursor,
 		}
 	}
@@ -168,7 +168,7 @@ type PathError struct {
 }
 
 func (e *PathError) Error() string {
-	return fmt.Sprintf("json: invalid path format: %s", e.msg)
+	return "json: invalid path format: " + e.msg
 }
 
 func ErrInvalidPath(msg string, args ...interface{}) *PathError {

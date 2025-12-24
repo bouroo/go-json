@@ -60,24 +60,28 @@ func newSliceDecoder(dec Decoder, elemType *runtime.Type, size uintptr, structNa
 }
 
 func (d *sliceDecoder) newSlice(src *sliceHeader) *sliceHeader {
-	slice := d.arrayPool.Get().(*sliceHeader)
-	if src.len > 0 {
+	pooled := d.arrayPool.Get().(*sliceHeader)
+	if src != nil && src.len > 0 {
 		// copy original elem
-		if slice.cap < src.cap {
+		if pooled.cap < src.cap {
 			data := newArray(d.elemType, src.cap)
-			slice = &sliceHeader{data: data, len: src.len, cap: src.cap}
-		} else {
-			slice.len = src.len
+			slice := &sliceHeader{data: data, len: src.len, cap: src.cap}
+			copySlice(d.elemType, *slice, *src)
+			d.arrayPool.Put(pooled)
+			return slice
 		}
-		copySlice(d.elemType, *slice, *src)
-	} else {
-		slice.len = 0
+		pooled.len = src.len
+		copySlice(d.elemType, *pooled, *src)
+		return pooled
 	}
-	return slice
+	pooled.len = 0
+	return pooled
 }
 
 func (d *sliceDecoder) releaseSlice(p *sliceHeader) {
-	d.arrayPool.Put(p)
+	if p != nil {
+		d.arrayPool.Put(p)
+	}
 }
 
 //go:linkname copySlice reflect.typedslicecopy

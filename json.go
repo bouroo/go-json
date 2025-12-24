@@ -17,7 +17,7 @@ type Marshaler interface {
 // MarshalerContext is the interface implemented by types that
 // can marshal themselves into valid JSON with context.Context.
 type MarshalerContext interface {
-	MarshalJSON(context.Context) ([]byte, error)
+	MarshalJSON(ctx context.Context) ([]byte, error)
 }
 
 // Unmarshaler is the interface implemented by types
@@ -29,13 +29,13 @@ type MarshalerContext interface {
 // By convention, to approximate the behavior of Unmarshal itself,
 // Unmarshalers implement UnmarshalJSON([]byte("null")) as a no-op.
 type Unmarshaler interface {
-	UnmarshalJSON([]byte) error
+	UnmarshalJSON(data []byte) error
 }
 
 // UnmarshalerContext is the interface implemented by types
 // that can unmarshal with context.Context a JSON description of themselves.
 type UnmarshalerContext interface {
-	UnmarshalJSON(context.Context, []byte) error
+	UnmarshalJSON(ctx context.Context, data []byte) error
 }
 
 // Marshal returns the JSON encoding of v.
