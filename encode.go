@@ -13,6 +13,10 @@ import (
 	"github.com/goccy/go-json/internal/encoder/vm_indent"
 )
 
+const (
+	bufferDetachThreshold = 4096
+)
+
 // An Encoder writes JSON values to an output stream.
 type Encoder struct {
 	w                 io.Writer
@@ -114,7 +118,7 @@ func (e *Encoder) SetIndent(prefix, indent string) {
 func marshalContext(ctx context.Context, v interface{}, optFuncs ...EncodeOptionFunc) ([]byte, error) {
 	rctx := encoder.TakeRuntimeContext()
 	rctx.Option.Flag = 0
-	rctx.Option.Flag = encoder.HTMLEscapeOption | encoder.NormalizeUTF8Option | encoder.ContextOption
+	rctx.Option.Flag |= encoder.HTMLEscapeOption | encoder.NormalizeUTF8Option | encoder.ContextOption
 	rctx.Option.Context = ctx
 	for _, optFunc := range optFuncs {
 		optFunc(rctx.Option)
@@ -126,16 +130,19 @@ func marshalContext(ctx context.Context, v interface{}, optFuncs ...EncodeOption
 		return nil, err
 	}
 
-	// this line exists to escape call of `runtime.makeslicecopy` .
-	// if use `make([]byte, len(buf)-1)` and `copy(copied, buf)`,
-	// dst buffer size and src buffer size are differrent.
-	// in this case, compiler uses `runtime.makeslicecopy`, but it is slow.
 	buf = buf[:len(buf)-1]
-	copied := make([]byte, len(buf))
-	copy(copied, buf)
+	var result []byte
+	if len(buf) < bufferDetachThreshold {
+		result = buf
+		rctx.Buf = make([]byte, 0, 1024)
+	} else {
+		copied := make([]byte, len(buf))
+		copy(copied, buf)
+		result = copied
+	}
 
 	encoder.ReleaseRuntimeContext(rctx)
-	return copied, nil
+	return result, nil
 }
 
 func marshal(v interface{}, optFuncs ...EncodeOptionFunc) ([]byte, error) {
@@ -153,16 +160,19 @@ func marshal(v interface{}, optFuncs ...EncodeOptionFunc) ([]byte, error) {
 		return nil, err
 	}
 
-	// this line exists to escape call of `runtime.makeslicecopy` .
-	// if use `make([]byte, len(buf)-1)` and `copy(copied, buf)`,
-	// dst buffer size and src buffer size are differrent.
-	// in this case, compiler uses `runtime.makeslicecopy`, but it is slow.
 	buf = buf[:len(buf)-1]
-	copied := make([]byte, len(buf))
-	copy(copied, buf)
+	var result []byte
+	if len(buf) < bufferDetachThreshold {
+		result = buf
+		ctx.Buf = make([]byte, 0, 1024)
+	} else {
+		copied := make([]byte, len(buf))
+		copy(copied, buf)
+		result = copied
+	}
 
 	encoder.ReleaseRuntimeContext(ctx)
-	return copied, nil
+	return result, nil
 }
 
 func marshalNoEscape(v interface{}) ([]byte, error) {
@@ -177,16 +187,19 @@ func marshalNoEscape(v interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	// this line exists to escape call of `runtime.makeslicecopy` .
-	// if use `make([]byte, len(buf)-1)` and `copy(copied, buf)`,
-	// dst buffer size and src buffer size are differrent.
-	// in this case, compiler uses `runtime.makeslicecopy`, but it is slow.
 	buf = buf[:len(buf)-1]
-	copied := make([]byte, len(buf))
-	copy(copied, buf)
+	var result []byte
+	if len(buf) < bufferDetachThreshold {
+		result = buf
+		ctx.Buf = make([]byte, 0, 1024)
+	} else {
+		copied := make([]byte, len(buf))
+		copy(copied, buf)
+		result = copied
+	}
 
 	encoder.ReleaseRuntimeContext(ctx)
-	return copied, nil
+	return result, nil
 }
 
 func marshalIndent(v interface{}, prefix, indent string, optFuncs ...EncodeOptionFunc) ([]byte, error) {
@@ -205,11 +218,18 @@ func marshalIndent(v interface{}, prefix, indent string, optFuncs ...EncodeOptio
 	}
 
 	buf = buf[:len(buf)-2]
-	copied := make([]byte, len(buf))
-	copy(copied, buf)
+	var result []byte
+	if len(buf) < bufferDetachThreshold {
+		result = buf
+		ctx.Buf = make([]byte, 0, 1024)
+	} else {
+		copied := make([]byte, len(buf))
+		copy(copied, buf)
+		result = copied
+	}
 
 	encoder.ReleaseRuntimeContext(ctx)
-	return copied, nil
+	return result, nil
 }
 
 func encode(ctx *encoder.RuntimeContext, v interface{}) ([]byte, error) {

@@ -12,6 +12,7 @@ import (
 
 const (
 	initBufSize = 512
+	maxBufSize  = 1 << 30
 )
 
 type Stream struct {
@@ -190,7 +191,11 @@ func (s *Stream) reset() {
 
 func (s *Stream) readBuf() []byte {
 	if s.filledBuffer {
-		s.bufSize *= 2
+		newBufSize := s.bufSize * 2
+		if newBufSize < s.bufSize || newBufSize > maxBufSize {
+			newBufSize = maxBufSize
+		}
+		s.bufSize = newBufSize
 		remainBuf := s.buf
 		s.buf = make([]byte, s.bufSize)
 		copy(s.buf, remainBuf)

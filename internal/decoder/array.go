@@ -46,8 +46,16 @@ func (d *arrayDecoder) DecodeStream(s *Stream, depth int64, p unsafe.Pointer) er
 			if err := nullBytes(s); err != nil {
 				return err
 			}
+			if p != nil {
+				for idx := 0; idx < d.alen; idx++ {
+					*(*unsafe.Pointer)(unsafe.Pointer(uintptr(p) + uintptr(idx)*d.size)) = d.zeroValue
+				}
+			}
 			return nil
 		case '[':
+			if p == nil {
+				return &errors.InvalidUnmarshalError{Type: nil}
+			}
 			idx := 0
 			s.cursor++
 			if s.skipWhiteSpace() == ']' {
@@ -120,9 +128,17 @@ func (d *arrayDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p unsafe
 			if err := validateNull(buf, cursor); err != nil {
 				return 0, err
 			}
+			if p != nil {
+				for idx := 0; idx < d.alen; idx++ {
+					*(*unsafe.Pointer)(unsafe.Pointer(uintptr(p) + uintptr(idx)*d.size)) = d.zeroValue
+				}
+			}
 			cursor += 4
 			return cursor, nil
 		case '[':
+			if p == nil {
+				return 0, &errors.InvalidUnmarshalError{Type: nil}
+			}
 			idx := 0
 			cursor++
 			cursor = skipWhiteSpace(buf, cursor)

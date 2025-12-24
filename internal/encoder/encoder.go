@@ -267,6 +267,18 @@ type MapContext struct {
 	Iter  mapIter
 }
 
+func (c *MapContext) Reset() {
+	c.Start = 0
+	c.First = 0
+	c.Idx = 0
+	if c.Slice != nil {
+		c.Slice.Items = c.Slice.Items[:0]
+	}
+	c.Buf = c.Buf[:0]
+	c.Len = 0
+	c.Iter = mapIter{}
+}
+
 var mapContextPool = sync.Pool{
 	New: func() interface{} {
 		return &MapContext{
@@ -292,6 +304,7 @@ func NewMapContext(mapLen int, unorderedMap bool) *MapContext {
 }
 
 func ReleaseMapContext(c *MapContext) {
+	c.Reset()
 	mapContextPool.Put(c)
 }
 
