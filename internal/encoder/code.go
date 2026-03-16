@@ -1,7 +1,6 @@
 package encoder
 
 import (
-	"fmt"
 	"reflect"
 	"unsafe"
 
@@ -720,9 +719,9 @@ func (c *StructFieldCode) addStructEndCode(ctx *compileContext, codes Opcodes) O
 func (c *StructFieldCode) structKey(ctx *compileContext) string {
 	if ctx.escapeKey {
 		rctx := &RuntimeContext{Option: &Option{Flag: HTMLEscapeOption}}
-		return fmt.Sprintf(`%s:`, string(AppendString(rctx, []byte{}, c.key)))
+		return string(AppendString(rctx, []byte{}, c.key)) + ":"
 	}
-	return fmt.Sprintf(`"%s":`, c.key)
+	return `"` + c.key + `":`
 }
 
 func (c *StructFieldCode) flags() OpFlags {
