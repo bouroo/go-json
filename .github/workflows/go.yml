@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
     - name: build
       run: docker compose run go-json
 
@@ -19,15 +19,15 @@ jobs:
     strategy:
       matrix:
         os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
-        go-version: [ "1.19", "1.20", "1.21" ]
+        go-version: [ "1.24", "oldstable", "stable" ]
     runs-on: ${{ matrix.os }}
     steps:
     - name: setup Go ${{ matrix.go-version }}
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go-version }}
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
     - name: simple test
       run: go test -v ./... -count=1
     - name: test with GC pressure
@@ -42,11 +42,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.21'
+          go-version: 'stable'
       - name: lint
         run: |
           make lint
@@ -55,17 +55,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.21'
+          go-version: 'stable'
       - name: checkout ( feature )
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: run benchmark ( feature )
         run: cd benchmarks && go test -bench GoJson | tee $HOME/new.txt
       - name: install benchstat
         run: go install golang.org/x/perf/cmd/benchstat@latest
       - name: checkout ( master )
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: master
       - name: run benchmark ( master )
@@ -78,14 +78,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.21'
+          go-version: 'stable'
       - name: measure coverage
         run: make cover
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
           verbose: true

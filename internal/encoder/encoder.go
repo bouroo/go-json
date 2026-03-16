@@ -39,6 +39,8 @@ func (t OpType) IsMultipleOpHead() bool {
 		return true
 	case OpStructHeadOmitEmptyStruct:
 		return true
+	case OpStructHeadOmitZero:
+		return true
 	case OpStructHeadSlicePtr:
 		return true
 	case OpStructHeadOmitEmptySlicePtr:
@@ -76,6 +78,8 @@ func (t OpType) IsMultipleOpField() bool {
 	case OpStructFieldOmitEmptyMap:
 		return true
 	case OpStructFieldOmitEmptyStruct:
+		return true
+	case OpStructFieldOmitZero:
 		return true
 	case OpStructFieldSlicePtr:
 		return true

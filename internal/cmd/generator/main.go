@@ -256,6 +256,11 @@ func (t OpType) FieldToOmitEmptyField() OpType {
 			})
 		}
 	}
+	opTypes = append(opTypes,
+		createOpType("StructHeadOmitZero", "StructField"),
+		createOpType("StructFieldOmitZero", "StructField"),
+		createOpType("StructPtrHeadOmitZero", "StructField"),
+	)
 	var b bytes.Buffer
 	if err := tmpl.Execute(&b, struct {
 		CodeTypes []string

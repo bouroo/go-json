@@ -22,7 +22,7 @@ const (
 	CodeStructEnd   CodeType = 11
 )
 
-var opTypeStrings = [400]string{
+var opTypeStrings = [403]string{
 	"End",
 	"Interface",
 	"Ptr",
@@ -423,6 +423,9 @@ var opTypeStrings = [400]string{
 	"StructFieldOmitEmpty",
 	"StructEnd",
 	"StructEndOmitEmpty",
+	"StructHeadOmitZero",
+	"StructFieldOmitZero",
+	"StructPtrHeadOmitZero",
 }
 
 type OpType uint16
@@ -828,10 +831,13 @@ const (
 	OpStructFieldOmitEmpty                   OpType = 397
 	OpStructEnd                              OpType = 398
 	OpStructEndOmitEmpty                     OpType = 399
+	OpStructHeadOmitZero                     OpType = 400
+	OpStructFieldOmitZero                    OpType = 401
+	OpStructPtrHeadOmitZero                  OpType = 402
 )
 
 func (t OpType) String() string {
-	if int(t) >= 400 {
+	if int(t) >= 403 {
 		return ""
 	}
 	return opTypeStrings[int(t)]

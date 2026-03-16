@@ -589,6 +589,37 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.Next
 				store(ctxptr, code.Idx, p)
 			}
+		case encoder.OpStructPtrHeadOmitZero:
+			p := load(ctxptr, code.Idx)
+			if p == 0 {
+				if code.Flags&encoder.AnonymousHeadFlags == 0 {
+					b = appendNullComma(ctx, b)
+				}
+				code = code.End.Next
+				break
+			}
+			store(ctxptr, code.Idx, ptrToNPtr(p, code.PtrNum))
+			fallthrough
+		case encoder.OpStructHeadOmitZero:
+			p := load(ctxptr, code.Idx)
+			if p == 0 && ((code.Flags&encoder.IndirectFlags) != 0 || code.Next.Op == encoder.OpStructEnd) {
+				if code.Flags&encoder.AnonymousHeadFlags == 0 {
+					b = appendNullComma(ctx, b)
+				}
+				code = code.End.Next
+				break
+			}
+			if code.Flags&encoder.AnonymousHeadFlags == 0 {
+				b = appendStructHead(ctx, b)
+			}
+			p += uintptr(code.Offset)
+			if encoder.IsZeroForOmitZero(code, p) {
+				code = code.NextField
+			} else {
+				b = appendStructKey(ctx, code, b)
+				code = code.Next
+				store(ctxptr, code.Idx, p)
+			}
 		case encoder.OpStructPtrHeadInt:
 			if (code.Flags & encoder.IndirectFlags) != 0 {
 				p := load(ctxptr, code.Idx)
@@ -3268,6 +3299,16 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			p := load(ctxptr, code.Idx)
 			p += uintptr(code.Offset)
 			if ptrToPtr(p) == 0 && (code.Flags&encoder.IsNextOpPtrTypeFlags) != 0 {
+				code = code.NextField
+			} else {
+				b = appendStructKey(ctx, code, b)
+				code = code.Next
+				store(ctxptr, code.Idx, p)
+			}
+		case encoder.OpStructFieldOmitZero:
+			p := load(ctxptr, code.Idx)
+			p += uintptr(code.Offset)
+			if encoder.IsZeroForOmitZero(code, p) {
 				code = code.NextField
 			} else {
 				b = appendStructKey(ctx, code, b)
