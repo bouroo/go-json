@@ -612,13 +612,41 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			if code.Flags&encoder.AnonymousHeadFlags == 0 {
 				b = appendStructHead(ctx, b)
 			}
-			p += uintptr(code.Offset)
-			if encoder.IsZeroForOmitZero(code, p) {
-				code = code.NextField
+			if (code.Flags & encoder.IndirectFlags) != 0 {
+				// the slot holds the struct base
+				p += uintptr(code.Offset)
+				if encoder.IsZeroForOmitZero(code, p) {
+					code = code.NextField
+				} else {
+					b = appendStructKey(ctx, code, b)
+					if code.Type.Kind() == reflect.Map {
+						// map opcodes take the map value itself, not its address
+						p = ptrToPtr(p)
+					}
+					code = code.Next
+					store(ctxptr, code.Idx, p)
+				}
 			} else {
-				b = appendStructKey(ctx, code, b)
-				code = code.Next
-				store(ctxptr, code.Idx, p)
+				// direct interface: the slot holds the field value itself, so the
+				// slot is the field's storage for every kind but map
+				if code.Type.Kind() == reflect.Map {
+					if p == 0 {
+						code = code.NextField
+					} else {
+						b = appendStructKey(ctx, code, b)
+						code = code.Next
+						store(ctxptr, code.Idx, p)
+					}
+				} else {
+					p = ctxptr + uintptr(code.Idx)
+					if encoder.IsZeroForOmitZero(code, p) {
+						code = code.NextField
+					} else {
+						b = appendStructKey(ctx, code, b)
+						code = code.Next
+						store(ctxptr, code.Idx, p)
+					}
+				}
 			}
 		case encoder.OpStructPtrHeadInt:
 			if (code.Flags & encoder.IndirectFlags) != 0 {
@@ -3312,6 +3340,10 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				code = code.NextField
 			} else {
 				b = appendStructKey(ctx, code, b)
+				if code.Type.Kind() == reflect.Map {
+					// map opcodes take the map value itself, not its address
+					p = ptrToPtr(p)
+				}
 				code = code.Next
 				store(ctxptr, code.Idx, p)
 			}
